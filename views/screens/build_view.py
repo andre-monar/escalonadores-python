@@ -5,10 +5,26 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 from views import theme
-from views.components.widgets import RoundedButton, ScrollableFrame, TrashIcon
+from views.components.widgets import Dropdown, PlaceholderNumericEntry, RoundedButton, ScrollableFrame, TrashIcon
 
-COLUMN_LABELS = ["ID", "Chegada", "Duração", "Prioridade", ""]
+COLUMN_LABELS = ["ID", "Chegada", "", "Duração", "", "Prioridade", "", ""]
+# (col_entry, col_unidade, unidade, placeholder/mínimo)
+TASK_FIELDS = [(1, 2, "s", 0), (3, 4, "s", 0), (5, 6, "", 1)]
 CHART_COLORS = [theme.PURPLE, "#4f9dff", "#38d9a9", "#f7b955", "#ff6b6b", "#c084fc"]
+
+SCHEDULER_OPTIONS = [
+    "FCFS",
+    "SJF",
+    "SRTF",
+    "Round-Robin",
+    "Prioridade Cooperativa",
+    "Prioridade Preemptiva",
+]
+
+ALGO_ROUND_ROBIN = "Round-Robin"
+ALGO_PRIOP = "Prioridade Preemptiva"
+CORRECTION_OPTIONS = ["Nenhum", "Herança", "Teto"]
+CORRECTION_DEFAULT = "Nenhum"
 
 SIDEBAR_WIDTH = 400
 SIDEBAR_PAD = 18
@@ -60,9 +76,22 @@ class BuildView(tk.Frame):
         content_width = SIDEBAR_WIDTH - 2 * SIDEBAR_PAD
 
         tk.Label(
-            sidebar, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
+            sidebar, text="Algoritmo de escalonador", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
             font=(theme.FONT_FAMILY, 14, "bold"),
         ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(20, 10))
+
+        self.scheduler_dropdown = Dropdown(
+            sidebar, SCHEDULER_OPTIONS, initial=SCHEDULER_OPTIONS[0],
+            width=content_width, height=48, command=self._on_algorithm_change,
+        )
+        self.scheduler_dropdown.pack(padx=SIDEBAR_PAD, pady=(0, 20))
+
+        self._build_specs(sidebar, content_width)
+
+        tk.Label(
+            sidebar, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
+            font=(theme.FONT_FAMILY, 14, "bold"),
+        ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
 
         header = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
         header.pack(fill="x", padx=SIDEBAR_PAD)
@@ -93,13 +122,83 @@ class BuildView(tk.Frame):
             bg=theme.PURPLE, hover=theme.PURPLE_HOVER,
         ).pack(side="bottom", padx=SIDEBAR_PAD, pady=20)
 
+    def _build_specs(self, sidebar, content_width):
+        tk.Label(
+            sidebar, text="Especificações", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
+            font=(theme.FONT_FAMILY, 14, "bold"),
+        ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
+
+        specs = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
+        specs.pack(fill="x", padx=SIDEBAR_PAD, pady=(0, 20))
+        specs.grid_columnconfigure(0, weight=1)
+        specs.grid_columnconfigure(1, weight=0)
+        specs.grid_columnconfigure(2, weight=0, minsize=18)
+
+        self.ctx_label = self._spec_label(specs, "Tempo de troca de contexto")
+        self.ctx_entry = PlaceholderNumericEntry(specs, placeholder=0, width=8)
+        self.ctx_unit = self._spec_unit(specs, "s")
+        self.ctx_label.grid(row=0, column=0, sticky="w", pady=8)
+        self.ctx_entry.grid(row=0, column=1, sticky="e", pady=8, ipady=6)
+        self.ctx_unit.grid(row=0, column=2, sticky="w", padx=(4, 0))
+
+        self.quantum_label = self._spec_label(specs, "Quantum")
+        self.quantum_entry = PlaceholderNumericEntry(specs, placeholder=0, width=8)
+        self.quantum_unit = self._spec_unit(specs, "s")
+
+        self.correction_label = self._spec_label(specs, "Protocolo de correção")
+        self.correction_dropdown = Dropdown(
+            specs, CORRECTION_OPTIONS, initial=CORRECTION_DEFAULT,
+            width=150, height=40,
+        )
+
+        self._update_specs_visibility()
+
+    @staticmethod
+    def _spec_label(parent, text):
+        return tk.Label(
+            parent, text=text, bg=theme.SIDEBAR_BG, fg=theme.TEXT,
+            font=(theme.FONT_FAMILY, 11), anchor="w",
+        )
+
+    @staticmethod
+    def _spec_unit(parent, text):
+        return tk.Label(
+            parent, text=text, bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+            font=(theme.FONT_FAMILY, 9),
+        )
+
+    def _on_algorithm_change(self, _value):
+        self._update_specs_visibility()
+
+    def _update_specs_visibility(self):
+        algoritmo = self.scheduler_dropdown.get()
+
+        if algoritmo == ALGO_ROUND_ROBIN:
+            self.quantum_label.grid(row=1, column=0, sticky="w", pady=8)
+            self.quantum_entry.grid(row=1, column=1, sticky="e", pady=8, ipady=6)
+            self.quantum_unit.grid(row=1, column=2, sticky="w", padx=(4, 0))
+        else:
+            self.quantum_label.grid_remove()
+            self.quantum_entry.grid_remove()
+            self.quantum_unit.grid_remove()
+
+        if algoritmo == ALGO_PRIOP:
+            self.correction_label.grid(row=2, column=0, sticky="w", pady=8)
+            self.correction_dropdown.grid(row=2, column=1, sticky="e", pady=8)
+        else:
+            self.correction_label.grid_remove()
+            self.correction_dropdown.grid_remove()
+
     @staticmethod
     def _configure_row_columns(row):
-        row.grid_columnconfigure(0, weight=0, minsize=30)
-        row.grid_columnconfigure(1, weight=1)
-        row.grid_columnconfigure(2, weight=1)
-        row.grid_columnconfigure(3, weight=1)
-        row.grid_columnconfigure(4, weight=0, minsize=34)
+        row.grid_columnconfigure(0, weight=0, minsize=26)   # ID
+        row.grid_columnconfigure(1, weight=1)                # Chegada
+        row.grid_columnconfigure(2, weight=0, minsize=16)    # unidade
+        row.grid_columnconfigure(3, weight=1)                # Duração
+        row.grid_columnconfigure(4, weight=0, minsize=16)    # unidade
+        row.grid_columnconfigure(5, weight=1)                # Prioridade
+        row.grid_columnconfigure(6, weight=0, minsize=16)    # unidade
+        row.grid_columnconfigure(7, weight=0, minsize=34)    # lixeira
 
     def _build_chart_panel(self, parent):
         panel = tk.Frame(parent, bg=theme.BG)
@@ -134,19 +233,18 @@ class BuildView(tk.Frame):
         id_label.grid(row=0, column=0, sticky="ew", padx=4)
 
         entries = []
-        for col in (1, 2, 3):
-            entry = tk.Entry(
-                row, bg=theme.CARD_BG, fg=theme.TEXT,
-                insertbackground=theme.TEXT, relief="flat", justify="center",
-                font=(theme.FONT_FAMILY, 11),
-                highlightthickness=1, highlightbackground=theme.BORDER,
-                highlightcolor=theme.PURPLE,
-            )
-            entry.grid(row=0, column=col, sticky="ew", padx=4, ipady=8)
+        for col_entry, col_unidade, unidade, placeholder in TASK_FIELDS:
+            entry = PlaceholderNumericEntry(row, placeholder=placeholder)
+            entry.grid(row=0, column=col_entry, sticky="ew", padx=4, ipady=8)
             entries.append(entry)
 
+            tk.Label(
+                row, text=unidade, bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+                font=(theme.FONT_FAMILY, 9),
+            ).grid(row=0, column=col_unidade, sticky="w")
+
         remove_btn = TrashIcon(row, command=lambda: self._remove_task_row(entry_data), size=22)
-        remove_btn.grid(row=0, column=4, sticky="e", padx=4)
+        remove_btn.grid(row=0, column=7, sticky="e", padx=4)
 
         entry_data = {"frame": row, "id_label": id_label, "entries": entries}
         self.task_rows.append(entry_data)
