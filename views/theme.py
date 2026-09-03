@@ -1,0 +1,20 @@
+BG = "#0e0e12"
+SIDEBAR_BG = "#131318"
+CARD_BG = "#17171d"
+SURFACE = "#212129"
+SURFACE_HOVER = "#2a2a34"
+BORDER = "#26262f"
+
+TEXT = "#f2f2f5"
+TEXT_MUTED = "#8b8b96"
+
+PURPLE = "#7c5cff"
+PURPLE_HOVER = "#9376ff"
+PURPLE_DARK = "#4338ca"
+
+GRADIENT_START = "#7c5cff"
+GRADIENT_END = "#4f6bff"
+
+DANGER = "#ff6b6b"
+
+FONT_FAMILY = "Segoe UI"
