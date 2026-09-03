@@ -4,6 +4,8 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+from models.resultado import Parametros
+from models.tarefa import Tarefa
 from views import theme
 from views.components.widgets import Dropdown, PlaceholderNumericEntry, RoundedButton, ScrollableFrame, TrashIcon
 
@@ -117,7 +119,7 @@ class BuildView(tk.Frame):
 
         RoundedButton(
             sidebar, "Gerar gráfico",
-            command=self._draw_placeholder_chart,
+            command=self._on_generate_click,
             width=content_width, height=52,
             bg=theme.PURPLE, hover=theme.PURPLE_HOVER,
         ).pack(side="bottom", padx=SIDEBAR_PAD, pady=20)
@@ -259,6 +261,48 @@ class BuildView(tk.Frame):
     def _renumber_rows(self):
         for index, row in enumerate(self.task_rows, start=1):
             row["id_label"].config(text=str(index))
+
+    # --------------------------------------------------------- monta objetos
+    def _build_tarefas(self) -> list[Tarefa]:
+        tarefas = []
+        for index, row in enumerate(self.task_rows, start=1):
+            chegada_entry, duracao_entry, prioridade_entry = row["entries"]
+            tarefas.append(Tarefa(
+                id=index,
+                chegada=chegada_entry.get_value(),
+                tp=duracao_entry.get_value(),
+                prioridade=prioridade_entry.get_value(),
+            ))
+        return tarefas
+
+    def _build_parametros(self) -> Parametros:
+        algoritmo = self.scheduler_dropdown.get()
+
+        quantum = self.quantum_entry.get_value() if algoritmo == ALGO_ROUND_ROBIN else None
+
+        protocolo = None
+        if algoritmo == ALGO_PRIOP:
+            selecionado = self.correction_dropdown.get()
+            protocolo = None if selecionado == "Nenhum" else selecionado
+
+        return Parametros(
+            algoritmo=algoritmo,
+            ctx_time=self.ctx_entry.get_value(),
+            quantum=quantum,
+            protocolo=protocolo,
+        )
+
+    def _on_generate_click(self):
+        tarefas = self._build_tarefas()
+        parametros = self._build_parametros()
+
+        # TODO: chamar o script do algoritmo escolhido (control/algoritmos/*) com
+        # `tarefas` e `parametros`, e usar o ResultadoSimulacao retornado pra desenhar
+        # o gráfico de verdade em vez do placeholder abaixo.
+        print("Tarefas:", tarefas)
+        print("Parâmetros:", parametros)
+
+        self._draw_placeholder_chart()
 
     # -------------------------------------------------------------- chart
     def _style_axes(self):
