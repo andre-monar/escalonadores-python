@@ -51,7 +51,6 @@ class BuildView(tk.Frame):
         super().__init__(parent, bg=theme.BG)
         self.controller = controller
         self.task_rows = []
-        self._next_id = 1
 
         self._build_topbar()
         self._build_body()
@@ -146,6 +145,13 @@ class BuildView(tk.Frame):
             conteudo, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
             font=(theme.FONT_FAMILY, 14, "bold"),
         ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
+
+        self.tasks_error_label = tk.Label(
+            conteudo, text="", bg=theme.SIDEBAR_BG, fg=theme.DANGER,
+            font=(theme.FONT_FAMILY, 10), anchor="w", justify="left",
+            wraplength=content_width,
+        )
+        self.tasks_error_label.pack(anchor="w", padx=SIDEBAR_PAD, pady=0)
 
         header = tk.Frame(conteudo, bg=theme.SIDEBAR_BG)
         header.pack(fill="x", padx=SIDEBAR_PAD)
@@ -280,15 +286,15 @@ class BuildView(tk.Frame):
 
     # ------------------------------------------------------------- CRUD rows
     def _add_task_row(self):
-        row_id = self._next_id
-        self._next_id += 1
-
         row = tk.Frame(self.rows_container, bg=theme.SIDEBAR_BG)
         row.pack(fill="x", pady=5)
         self._configure_row_columns(row)
 
+        # o número exibido é sempre a posição na lista (1-based) — nunca um
+        # contador à parte, senão ele diverge depois de remover uma linha
+        # (ex: tira a 2, adiciona outra, e ela apareceria como "4" em vez de "3")
         id_label = tk.Label(
-            row, text=str(row_id), bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+            row, text=str(len(self.task_rows) + 1), bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
             font=(theme.FONT_FAMILY, 10), anchor="w",
         )
         id_label.grid(row=0, column=0, sticky="ew", padx=4)
@@ -327,17 +333,43 @@ class BuildView(tk.Frame):
         for index, row in enumerate(self.task_rows, start=1):
             row["id_label"].config(text=str(index))
 
+    def _mostrar_erro_tarefas(self, mensagem):
+        self.tasks_error_label.config(text=mensagem)
+        self.tasks_error_label.pack_configure(pady=(0, 14))
+
+    def _limpar_erro_tarefas(self):
+        self.tasks_error_label.config(text="")
+        self.tasks_error_label.pack_configure(pady=0)
+
+    def _limpar_tarefas_invalidas(self):
+        """Remove da tela as tarefas com duração 0 (nunca preenchidas) e garante
+        que sobrem pelo menos 2 linhas visíveis (só de exibição — as que forem
+        adicionadas aqui têm duração 0 e não são enviadas pro algoritmo)."""
+        invalidas = [row for row in self.task_rows if row["entries"][1].get_value() <= 0]
+        for row in invalidas:
+            row["frame"].destroy()
+            self.task_rows.remove(row)
+        self._renumber_rows()
+
+        while len(self.task_rows) < 2:
+            self._add_task_row()
+
     # --------------------------------------------------------- monta objetos
     def _build_tarefas(self) -> list[Tarefa]:
         tarefas = []
-        for index, row in enumerate(self.task_rows, start=1):
+        proximo_id = 1
+        for row in self.task_rows:
             chegada_entry, duracao_entry, prioridade_entry = row["entries"]
+            duracao = duracao_entry.get_value()
+            if duracao <= 0:
+                continue  # linha só de exibição (preenchimento), não entra na simulação
             tarefas.append(Tarefa(
-                id=index,
+                id=proximo_id,
                 chegada=chegada_entry.get_value(),
-                tp=duracao_entry.get_value(),
+                tp=duracao,
                 prioridade=prioridade_entry.get_value(),
             ))
+            proximo_id += 1
         return tarefas
 
     def _build_parametros(self) -> Parametros:
@@ -358,6 +390,13 @@ class BuildView(tk.Frame):
         )
 
     def _on_generate_click(self):
+        tem_tarefa_valida = any(row["entries"][1].get_value() > 0 for row in self.task_rows)
+        if not tem_tarefa_valida:
+            self._mostrar_erro_tarefas("Nenhuma tarefa tem duração válida")
+            return
+        self._limpar_erro_tarefas()
+        self._limpar_tarefas_invalidas()
+
         tarefas = self._build_tarefas()
         parametros = self._build_parametros()
 

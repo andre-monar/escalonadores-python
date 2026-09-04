@@ -340,9 +340,10 @@ class PlaceholderNumericEntry(tk.Entry):
     def get_value(self):
         """Valor efetivo: o que o usuário digitou (int se for inteiro, float se tiver
         casas decimais), ou o placeholder se ele nunca digitou nada."""
-        if self._is_placeholder:
+        texto = self.get().strip()
+        if self._is_placeholder or texto == "":
             return self.placeholder
-        valor = self._para_float(self.get().strip())
+        valor = self._para_float(texto)
         return int(valor) if valor.is_integer() else valor
 
     def set_locked(self, locked: bool):
