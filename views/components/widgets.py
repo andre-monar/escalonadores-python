@@ -115,15 +115,20 @@ class Dropdown(tk.Frame):
     (o ttk.Combobox nativo não dá pra estilizar direito, principalmente a lista)."""
 
     def __init__(self, parent, options, initial=None, width=300, height=48,
-                 command=None, parent_bg=None):
+                 command=None, parent_bg=None, desabilitados=None):
         bg = parent_bg or parent.cget("bg")
         super().__init__(parent, bg=bg)
 
-        self.options = options
+        # cada opção é (valor, rótulo) — `get()` devolve o valor, a tela mostra o rótulo.
+        # aceita também uma lista simples de strings, onde valor == rótulo.
+        self.options = [o if isinstance(o, tuple) else (o, o) for o in options]
+        self.desabilitados = desabilitados or set()
         self.command = command
         self.width = width
         self.height = height
-        self.value = initial if initial in options else (options[0] if options else "")
+
+        valores = [valor for valor, _ in self.options]
+        self.value = initial if initial in valores else (valores[0] if valores else "")
         self._popup = None
         self._outside_click_binding = None
         self._unmap_binding = None
@@ -150,7 +155,7 @@ class Dropdown(tk.Frame):
         outline = theme.PURPLE if open_state else theme.BORDER
         self._round_rect(c, 1, 1, self.width - 1, self.height - 1, 10,
                           fill=fill, outline=outline, width=1.4)
-        c.create_text(16, self.height / 2, text=self.value, anchor="w",
+        c.create_text(16, self.height / 2, text=self._rotulo_atual(), anchor="w",
                        fill=theme.TEXT, font=(theme.FONT_FAMILY, 11))
 
         cx, cy = self.width - 24, self.height / 2
@@ -160,6 +165,12 @@ class Dropdown(tk.Frame):
         else:
             c.create_polygon(cx - 6, cy - 3, cx + 6, cy - 3, cx, cy + 5,
                               fill=theme.TEXT_MUTED, outline="")
+
+    def _rotulo_atual(self):
+        for valor, rotulo in self.options:
+            if valor == self.value:
+                return rotulo
+        return self.value
 
     def _toggle_popup(self, _event=None):
         if self._popup is not None:
@@ -181,15 +192,19 @@ class Dropdown(tk.Frame):
         inner = tk.Frame(popup, bg=theme.CARD_BG)
         inner.pack(padx=1, pady=1, fill="both", expand=True)
 
-        for option in self.options:
+        for valor, rotulo in self.options:
+            desabilitado = valor in self.desabilitados
             row = tk.Label(
-                inner, text=option, bg=theme.CARD_BG, fg=theme.TEXT, anchor="w",
-                font=(theme.FONT_FAMILY, 11), padx=16, pady=10, cursor="hand2",
+                inner, text=rotulo, bg=theme.CARD_BG,
+                fg=theme.TEXT_MUTED if desabilitado else theme.TEXT, anchor="w",
+                font=(theme.FONT_FAMILY, 11), padx=16, pady=10,
+                cursor="arrow" if desabilitado else "hand2",
             )
             row.pack(fill="x")
-            row.bind("<Enter>", lambda e, r=row: r.config(bg=theme.PURPLE))
-            row.bind("<Leave>", lambda e, r=row: r.config(bg=theme.CARD_BG))
-            row.bind("<Button-1>", lambda e, o=option: self._select(o))
+            if not desabilitado:
+                row.bind("<Enter>", lambda e, r=row: r.config(bg=theme.PURPLE))
+                row.bind("<Leave>", lambda e, r=row: r.config(bg=theme.CARD_BG))
+                row.bind("<Button-1>", lambda e, v=valor: self._select(v))
 
         popup.update_idletasks()
         popup_width = max(self.width, popup.winfo_reqwidth())
@@ -241,7 +256,12 @@ class PlaceholderNumericEntry(tk.Entry):
     """Entry numérico com placeholder visual: mostra um valor inicial em cinza (que
     também é o mínimo aceito) até o usuário digitar algo válido por cima. Bloqueia
     negativos e não-dígitos na digitação; valores abaixo do placeholder ao sair do
-    campo fazem ele voltar a mostrar o placeholder."""
+    campo fazem ele voltar a mostrar o placeholder.
+
+    Aceita decimais com vírgula (padrão brasileiro) — "." digitado vira "," na hora.
+    Só permite uma vírgula por número, e completa com "0" o lado que faltar (ex: "3,"
+    vira "3,0") quando o campo perde o foco.
+    """
 
     def __init__(self, parent, placeholder, width=8):
         self.placeholder = placeholder
@@ -253,6 +273,7 @@ class PlaceholderNumericEntry(tk.Entry):
             font=(theme.FONT_FAMILY, 11),
             highlightthickness=1, highlightbackground=theme.BORDER,
             highlightcolor=theme.PURPLE,
+            disabledbackground=theme.BORDER, disabledforeground=theme.TEXT_MUTED,
         )
         vcmd = (self.register(self._validate_keystroke), "%P")
         self.config(validate="key", validatecommand=vcmd)
@@ -260,10 +281,20 @@ class PlaceholderNumericEntry(tk.Entry):
         self.insert(0, str(placeholder))
         self.bind("<FocusIn>", self._on_focus_in)
         self.bind("<FocusOut>", self._on_focus_out)
+        self.bind("<KeyPress-period>", self._trocar_ponto_por_virgula)
+        self.bind("<KeyPress-KP_Decimal>", self._trocar_ponto_por_virgula)
 
     @staticmethod
     def _validate_keystroke(proposed):
-        return proposed == "" or proposed.isdigit()
+        if proposed == "":
+            return True
+        if proposed.count(",") > 1:
+            return False
+        return all(ch.isdigit() or ch == "," for ch in proposed)
+
+    def _trocar_ponto_por_virgula(self, _event):
+        self.insert(self.index("insert"), ",")
+        return "break"
 
     def _on_focus_in(self, _event):
         if self._is_placeholder:
@@ -272,12 +303,33 @@ class PlaceholderNumericEntry(tk.Entry):
             self._is_placeholder = False
 
     def _on_focus_out(self, _event):
-        text = self.get().strip()
-        if text == "" or int(text) < self.placeholder:
+        texto = self.get().strip()
+        if texto == "":
+            self._show_placeholder()
+            return
+
+        texto = self._normalizar(texto)
+        if texto != self.get():
+            self.delete(0, "end")
+            self.insert(0, texto)
+
+        if self._para_float(texto) < self.placeholder:
             self._show_placeholder()
         else:
             self.config(fg=theme.TEXT)
             self._is_placeholder = False
+
+    @staticmethod
+    def _normalizar(texto):
+        """Completa com '0' o lado que faltar de uma vírgula (ex: '3,' -> '3,0')."""
+        if "," not in texto:
+            return texto
+        antes, depois = texto.split(",", 1)
+        return f"{antes or '0'},{depois or '0'}"
+
+    @staticmethod
+    def _para_float(texto):
+        return float(texto.replace(",", "."))
 
     def _show_placeholder(self):
         self.delete(0, "end")
@@ -286,11 +338,19 @@ class PlaceholderNumericEntry(tk.Entry):
         self._is_placeholder = True
 
     def get_value(self):
-        """Valor efetivo: o que o usuário digitou, ou o placeholder se ele nunca digitou nada."""
-        text = self.get().strip()
-        if self._is_placeholder or text == "":
+        """Valor efetivo: o que o usuário digitou (int se for inteiro, float se tiver
+        casas decimais), ou o placeholder se ele nunca digitou nada."""
+        if self._is_placeholder:
             return self.placeholder
-        return int(text)
+        valor = self._para_float(self.get().strip())
+        return int(valor) if valor.is_integer() else valor
+
+    def set_locked(self, locked: bool):
+        """Trava o campo (cinza, não clicável) mantendo o valor guardado por baixo."""
+        if locked:
+            self.config(state="disabled")
+        else:
+            self.config(state="normal", fg=theme.TEXT_MUTED if self._is_placeholder else theme.TEXT)
 
 
 class ScrollableFrame(tk.Frame):
