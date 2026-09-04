@@ -4,6 +4,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 from algoritmos.fcfs import fcfs
+from algoritmos.round_robin import round_robin
+from algoritmos.validacoes import ErroValidacao
 from models.periodo import TipoPeriodo
 from models.resultado import Parametros, ResultadoSimulacao
 from models.tarefa import Tarefa
@@ -23,13 +25,13 @@ ALGO_PRIOP = "PRIOp"
 
 SCHEDULER_OPTIONS = [
     (ALGO_FCFS, "FCFS | First-Come, First-Served"),
+    (ALGO_ROUND_ROBIN, "RR | Round-Robin"),
     (ALGO_SJF, "SJF | Shortest Job First"),
     (ALGO_SRTF, "SRTF | Shortest Remaining Time First"),
-    (ALGO_ROUND_ROBIN, "Round-Robin"),
     (ALGO_PRIOC, "PRIOc | Prioridade Cooperativa"),
     (ALGO_PRIOP, "PRIOp | Prioridade Preemptiva"),
 ]
-ALGORITMOS_DESABILITADOS = {ALGO_SJF, ALGO_SRTF, ALGO_ROUND_ROBIN, ALGO_PRIOC, ALGO_PRIOP}
+ALGORITMOS_DESABILITADOS = {ALGO_SJF, ALGO_SRTF, ALGO_PRIOC, ALGO_PRIOP}
 ALGORITMOS_COM_PRIORIDADE = {ALGO_PRIOC, ALGO_PRIOP}
 
 CORRECTION_OPTIONS = ["Nenhum", "Herança", "Teto"]
@@ -117,6 +119,16 @@ class BuildView(tk.Frame):
 
         self._build_specs(conteudo, content_width)
 
+        self.specs_error_label = tk.Label(
+            conteudo, text="", bg=theme.SIDEBAR_BG, fg=theme.DANGER,
+            font=(theme.FONT_FAMILY, 10), anchor="w", justify="left",
+            wraplength=content_width,
+        )
+        # empacotado já na posição certa (entre Especificações e Tarefas), com
+        # padding zerado — _mostrar_erro_specs/_limpar_erro_specs só ajustam o
+        # padding depois (pack_configure preserva a posição; um pack() novo não)
+        self.specs_error_label.pack(anchor="w", padx=SIDEBAR_PAD, pady=0)
+
         tk.Label(
             conteudo, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
             font=(theme.FONT_FAMILY, 14, "bold"),
@@ -191,6 +203,15 @@ class BuildView(tk.Frame):
     def _on_algorithm_change(self, _value):
         self._update_specs_visibility()
         self._update_priority_lock()
+        self._limpar_erro_specs()
+
+    def _mostrar_erro_specs(self, mensagem):
+        self.specs_error_label.config(text=mensagem)
+        self.specs_error_label.pack_configure(pady=(0, 14))
+
+    def _limpar_erro_specs(self):
+        self.specs_error_label.config(text="")
+        self.specs_error_label.pack_configure(pady=0)
 
     def _update_specs_visibility(self):
         algoritmo = self.scheduler_dropdown.get()
@@ -327,11 +348,18 @@ class BuildView(tk.Frame):
         tarefas = self._build_tarefas()
         parametros = self._build_parametros()
 
-        if parametros.algoritmo == ALGO_FCFS:
-            resultado = fcfs(tarefas, ctx_time=parametros.ctx_time)
-        else:
-            return  # os outros algoritmos ainda não estão implementados
+        try:
+            if parametros.algoritmo == ALGO_FCFS:
+                resultado = fcfs(tarefas, ctx_time=parametros.ctx_time)
+            elif parametros.algoritmo == ALGO_ROUND_ROBIN:
+                resultado = round_robin(tarefas, ctx_time=parametros.ctx_time, quantum=parametros.quantum)
+            else:
+                return  # os outros algoritmos ainda não estão implementados
+        except ErroValidacao as erro:
+            self._mostrar_erro_specs(str(erro))
+            return
 
+        self._limpar_erro_specs()
         self._desenhar_resultado(resultado)
 
     # -------------------------------------------------------------- chart
@@ -370,6 +398,11 @@ class BuildView(tk.Frame):
                     tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
                     color=cor, edgecolor=theme.CARD_BG, height=0.55,
                 )
+                if periodo.preemptado_por_quantum:
+                    self.ax.plot(
+                        [periodo.fim, periodo.fim], [tr.tarefa.id - 0.32, tr.tarefa.id + 0.32],
+                        linestyle="--", color=theme.TEXT, linewidth=1.2,
+                    )
             metricas = resultado.metricas_por_tarefa[tr.tarefa.id]
             self.ax.text(
                 tempo_max + tempo_max * 0.02, tr.tarefa.id,
