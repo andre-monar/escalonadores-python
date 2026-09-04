@@ -13,7 +13,7 @@ def round_robin(tarefas: list[Tarefa], ctx_time: float, quantum: int) -> Resulta
 
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
     
-    tempo_atual = 0
+    tempo_atual = min(tarefa.chegada for tarefa in tarefas)
     fila: list[Tarefa] = []
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
@@ -34,6 +34,11 @@ def round_robin(tarefas: list[Tarefa], ctx_time: float, quantum: int) -> Resulta
             # se a tarefa atual ainda tem tempo restante, ela volta pro fim da fila
             fila.append(tarefa_atual)
 
+        if not fila:
+            # se a fila estiver vazia, incrementa o tempo até a próxima tarefa chegar
+            if tarefas_pendentes:
+                tempo_atual = min(tarefa.chegada for tarefa in tarefas_pendentes)
+            continue
         tarefa_nova = fila.pop(0)
         quantum_pendente = quantum
         # add troca de contexto se tarefa mudou
