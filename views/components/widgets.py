@@ -251,6 +251,14 @@ class Dropdown(tk.Frame):
     def get(self):
         return self.value
 
+    def set_value(self, valor):
+        """Define o valor programaticamente (ex: ao carregar um cenário salvo) —
+        dispara o mesmo callback de quando o usuário seleciona na lista. Se
+        `valor` não for uma opção reconhecida, ignora e mantém o que já tinha."""
+        if valor not in {v for v, _ in self.options}:
+            return
+        self._select(valor)
+
 
 class PlaceholderNumericEntry(tk.Entry):
     """Entry numérico com placeholder visual: mostra um valor inicial em cinza (que
@@ -352,6 +360,22 @@ class PlaceholderNumericEntry(tk.Entry):
             self.config(state="disabled")
         else:
             self.config(state="normal", fg=theme.TEXT_MUTED if self._is_placeholder else theme.TEXT)
+
+    def set_value(self, valor):
+        """Define o valor programaticamente (ex: ao carregar um cenário salvo).
+        Passa pela mesma checagem de mínimo do placeholder — um valor inválido
+        simplesmente volta a mostrar o placeholder, igual digitação manual."""
+        estava_travado = self.cget("state") == "disabled"
+        if estava_travado:
+            self.config(state="normal")
+
+        self.delete(0, "end")
+        self.insert(0, str(valor).replace(".", ","))
+        self._is_placeholder = False
+        self._on_focus_out(None)
+
+        if estava_travado:
+            self.config(state="disabled")
 
 
 class ScrollableFrame(tk.Frame):

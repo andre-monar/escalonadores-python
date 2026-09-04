@@ -1,7 +1,10 @@
+import json
 import tkinter as tk
+from tkinter import filedialog
 
 from views import theme
 from views.components.widgets import RoundedButton
+from views.screens.build_view import validar_cenario
 
 
 class HomeView(tk.Frame):
@@ -38,7 +41,7 @@ class HomeView(tk.Frame):
 
     def _build_actions(self):
         actions = tk.Frame(self, bg=theme.BG)
-        actions.pack(pady=40)
+        actions.pack(pady=(40, 0))
 
         RoundedButton(
             actions, "Criar novo cenário",
@@ -48,13 +51,39 @@ class HomeView(tk.Frame):
 
         RoundedButton(
             actions, "Abrir cenário",
-            command=self._open_scenario_placeholder,
+            command=self._on_open_scenario_click,
             width=200, height=52, bg=theme.BG, hover=theme.CARD_BG,
             fg=theme.TEXT, outline=theme.BORDER,
         ).pack(side="left", padx=12)
 
-    def _open_scenario_placeholder(self):
-        pass
+        self.error_label = tk.Label(
+            self, text="", bg=theme.BG, fg=theme.DANGER, font=(theme.FONT_FAMILY, 10),
+        )
+        self.error_label.pack(pady=(14, 0))
+
+    def _on_open_scenario_click(self):
+        caminho = filedialog.askopenfilename(
+            title="Abrir cenário",
+            filetypes=[("Cenário (JSON)", "*.json")],
+        )
+        if not caminho:
+            return  # usuário cancelou o diálogo
+
+        try:
+            with open(caminho, encoding="utf-8") as arquivo:
+                cenario = json.load(arquivo)
+        except (OSError, json.JSONDecodeError):
+            self.error_label.config(text="Esse arquivo não é um cenário válido.")
+            return
+
+        if not validar_cenario(cenario):
+            self.error_label.config(text="Esse arquivo não é um cenário válido.")
+            return
+
+        self.error_label.config(text="")
+        build_view = self.controller.frames["BuildView"]
+        build_view.carregar_cenario(cenario)
+        self.controller.show_frame("BuildView")
 
     def _build_footer(self):
         tk.Label(

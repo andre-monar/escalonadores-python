@@ -46,6 +46,36 @@ SIDEBAR_WIDTH = 400
 SIDEBAR_PAD = 18
 
 
+def validar_cenario(cenario) -> bool:
+    """Confere se um dict lido de um .json tem a cara de um cenário salvo por
+    essa tela — usado pelo HomeView antes de tentar carregar (R2: rejeitar
+    arquivo inválido em vez de deixar a tela num estado quebrado)."""
+    if not isinstance(cenario, dict):
+        return False
+
+    algoritmos_validos = {valor for valor, _ in SCHEDULER_OPTIONS}
+    if cenario.get("algoritmo") not in algoritmos_validos:
+        return False
+    if cenario.get("protocolo_correcao") not in CORRECTION_OPTIONS:
+        return False
+    if not isinstance(cenario.get("ctx_time"), (int, float)):
+        return False
+    if not isinstance(cenario.get("quantum"), (int, float)):
+        return False
+
+    tarefas = cenario.get("tarefas")
+    if not isinstance(tarefas, list):
+        return False
+    for tarefa in tarefas:
+        if not isinstance(tarefa, dict):
+            return False
+        for chave in ("chegada", "duracao", "prioridade"):
+            if not isinstance(tarefa.get(chave), (int, float)):
+                return False
+
+    return True
+
+
 class BuildView(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent, bg=theme.BG)
@@ -145,6 +175,15 @@ class BuildView(tk.Frame):
             conteudo, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
             font=(theme.FONT_FAMILY, 14, "bold"),
         ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
+
+        RoundedButton(
+            conteudo, "Abrir cenário",
+            command=self._on_open_scenario_click,
+            width=content_width, height=48, radius=10,
+            bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
+            fg=theme.TEXT, outline=theme.BORDER,
+            font=(theme.FONT_FAMILY, 11, "bold"),
+        ).pack(padx=SIDEBAR_PAD, pady=(0, 10))
 
         self.tasks_error_label = tk.Label(
             conteudo, text="", bg=theme.SIDEBAR_BG, fg=theme.DANGER,
@@ -446,6 +485,52 @@ class BuildView(tk.Frame):
         cenario = self._build_cenario_dict()
         with open(caminho, "w", encoding="utf-8") as arquivo:
             json.dump(cenario, arquivo, indent=2, ensure_ascii=False)
+
+    def _on_open_scenario_click(self):
+        caminho = filedialog.askopenfilename(
+            title="Abrir cenário",
+            filetypes=[("Cenário (JSON)", "*.json")],
+        )
+        if not caminho:
+            return  # usuário cancelou o diálogo
+
+        try:
+            with open(caminho, encoding="utf-8") as arquivo:
+                cenario = json.load(arquivo)
+        except (OSError, json.JSONDecodeError):
+            self._mostrar_erro_tarefas("Esse arquivo não é um cenário válido.")
+            return
+
+        if not validar_cenario(cenario):
+            self._mostrar_erro_tarefas("Esse arquivo não é um cenário válido.")
+            return
+
+        self.carregar_cenario(cenario)
+
+    def carregar_cenario(self, cenario: dict):
+        """Preenche a tela inteira a partir de um dict já validado (validar_cenario).
+        Chame ANTES de mostrar essa tela — a ordem importa: o algoritmo primeiro,
+        pra especificações/trava de prioridade já nascerem certas nas tarefas."""
+        self.scheduler_dropdown.set_value(cenario["algoritmo"])
+        self.ctx_entry.set_value(cenario["ctx_time"])
+        self.quantum_entry.set_value(cenario["quantum"])
+        self.correction_dropdown.set_value(cenario["protocolo_correcao"])
+
+        for row in list(self.task_rows):
+            row["frame"].destroy()
+        self.task_rows.clear()
+
+        tarefas = cenario["tarefas"] or [{}, {}]
+        for dado in tarefas:
+            self._add_task_row()
+            chegada_entry, duracao_entry, prioridade_entry = self.task_rows[-1]["entries"]
+            chegada_entry.set_value(dado.get("chegada", 0))
+            duracao_entry.set_value(dado.get("duracao", 0))
+            prioridade_entry.set_value(dado.get("prioridade", 1))
+
+        self._limpar_erro_specs()
+        self._limpar_erro_tarefas()
+        self._draw_empty_chart()
 
     # -------------------------------------------------------------- chart
     def _style_axes(self):
