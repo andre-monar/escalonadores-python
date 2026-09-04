@@ -1,4 +1,6 @@
+import json
 import tkinter as tk
+from tkinter import filedialog
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -89,15 +91,26 @@ class BuildView(tk.Frame):
 
         content_width = SIDEBAR_WIDTH - 2 * SIDEBAR_PAD
 
-        # botão principal fixo embaixo, fora da área com scroll — sempre visível,
-        # não importa o quanto o resto do conteúdo cresça. Empacotado ANTES do
-        # scroll (side="bottom" reserva o espaço dele primeiro).
+        # botões fixos embaixo, fora da área com scroll — sempre visíveis, não
+        # importa o quanto o resto do conteúdo cresça. Empacotados ANTES do
+        # scroll (side="bottom" reserva o espaço deles primeiro). O primeiro
+        # empacotado com side="bottom" fica mais embaixo — por isso "Salvar
+        # cenário" vem antes no código, pra ficar abaixo de "Gerar gráfico".
+        RoundedButton(
+            sidebar, "Salvar cenário",
+            command=self._on_save_click,
+            width=content_width, height=44,
+            bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
+            fg=theme.TEXT, outline=theme.BORDER,
+            font=(theme.FONT_FAMILY, 11, "bold"),
+        ).pack(side="bottom", padx=SIDEBAR_PAD, pady=(0, 20))
+
         RoundedButton(
             sidebar, "Gerar gráfico",
             command=self._on_generate_click,
             width=content_width, height=52,
             bg=theme.PURPLE, hover=theme.PURPLE_HOVER,
-        ).pack(side="bottom", padx=SIDEBAR_PAD, pady=20)
+        ).pack(side="bottom", padx=SIDEBAR_PAD, pady=(20, 10))
 
         # tudo mais fica dentro de uma área com scroll — se a janela ficar baixa
         # demais pro conteúdo inteiro, rola em vez de cortar.
@@ -361,6 +374,39 @@ class BuildView(tk.Frame):
 
         self._limpar_erro_specs()
         self._desenhar_resultado(resultado)
+
+    # ---------------------------------------------------------- salvar/abrir
+    def _build_cenario_dict(self) -> dict:
+        """Todos os inputs do formulário, inclusive os campos ocultos/travados
+        no momento (quantum, protocolo de correção, prioridade) — só assim dá
+        pra trocar de algoritmo depois de recarregar sem perder nada."""
+        return {
+            "algoritmo": self.scheduler_dropdown.get(),
+            "ctx_time": self.ctx_entry.get_value(),
+            "quantum": self.quantum_entry.get_value(),
+            "protocolo_correcao": self.correction_dropdown.get(),
+            "tarefas": [
+                {
+                    "chegada": row["entries"][0].get_value(),
+                    "duracao": row["entries"][1].get_value(),
+                    "prioridade": row["entries"][2].get_value(),
+                }
+                for row in self.task_rows
+            ],
+        }
+
+    def _on_save_click(self):
+        caminho = filedialog.asksaveasfilename(
+            title="Salvar cenário",
+            defaultextension=".json",
+            filetypes=[("Cenário (JSON)", "*.json")],
+        )
+        if not caminho:
+            return  # usuário cancelou o diálogo
+
+        cenario = self._build_cenario_dict()
+        with open(caminho, "w", encoding="utf-8") as arquivo:
+            json.dump(cenario, arquivo, indent=2, ensure_ascii=False)
 
     # -------------------------------------------------------------- chart
     def _style_axes(self):
