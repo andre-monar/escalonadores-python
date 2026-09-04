@@ -12,6 +12,6 @@ class SecaoCritica:
 class Tarefa:
     id: int
     chegada: int
-    tp: int
+    tp: int # tempo processamento
     prioridade: int
     secao_critica: SecaoCritica | None = None
