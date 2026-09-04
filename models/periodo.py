@@ -14,3 +14,4 @@ class Periodo:
     inicio: float
     fim: float
     tipo: TipoPeriodo
+    preemptado_por_quantum: bool = False
