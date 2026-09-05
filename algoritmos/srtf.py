@@ -34,7 +34,7 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                             inserir_na_fila.append((len(fila), tarefa_iterada))
         if inserir_na_fila:
             for tarefa in inserir_na_fila:
-                fila.insert(tarefa)
+                fila.insert(*tarefa)
         return fila
 
     while ids_nao_finalizados:
