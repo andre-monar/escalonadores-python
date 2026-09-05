@@ -586,10 +586,8 @@ class BuildView(tk.Frame):
                     fill=False, edgecolor=CHART_ESPERA, linewidth=1.2, height=0.55,
                 )
             for periodo in tr.periodos:
-                if periodo.tipo == TipoPeriodo.EXECUCAO:
-                    cor, borda = CHART_EXECUCAO, theme.PURPLE_DARK
-                else:
-                    cor, borda = CHART_TROCA_CONTEXTO, theme.CARD_BG
+                cor = CHART_EXECUCAO if periodo.tipo == TipoPeriodo.EXECUCAO else CHART_TROCA_CONTEXTO
+                borda = theme.PURPLE_DARK
                 self.ax.barh(
                     tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
                     color=cor, edgecolor=borda, linewidth=1.2, height=0.55,
