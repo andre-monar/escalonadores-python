@@ -16,21 +16,25 @@ def sjf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     fila: list[Tarefa]= []
 
     def _encher_fila(tarefas_pendentes, tempo_atual, fila):
-            for tarefa_iterada in tarefas_pendentes:
-                if tempo_atual >= tarefa_iterada.chegada and tarefa_iterada not in fila:
-                    if not fila:
-                        fila.append(tarefa_iterada)
-                        continue
-                    # se a fila não estiver vazia, adiciona a tarefa na posição correta
-                    for i, tarefa_na_fila in enumerate(fila):
-                        if tarefa_iterada.tp < tarefa_na_fila.tp:
-                            fila.insert(i, tarefa_iterada)
-                            break
-                        else:
-                            # se for a ultima, adiciona no final
-                            if i == len(fila) - 1:
-                                fila.append(tarefa_iterada)
-            return fila
+        # variavel pra inserir só fora do loop, nao durante a iteração
+        inserir_na_fila: tuple[int, Tarefa] | None = None
+        for tarefa_iterada in tarefas_pendentes:
+            if tempo_atual >= tarefa_iterada.chegada and tarefa_iterada not in fila:
+                if not fila:
+                    fila.append(tarefa_iterada)
+                    continue
+                # se a fila não estiver vazia, adiciona a tarefa na posição correta
+                for i, tarefa_na_fila in enumerate(fila):
+                    if tarefa_iterada.tp < tarefa_na_fila.tp:
+                        inserir_na_fila = i, tarefa_iterada
+                        break
+                    else:
+                        # se for a ultima, adiciona no final
+                        if i == len(fila) - 1:
+                            inserir_na_fila = len(fila), tarefa_iterada
+        if inserir_na_fila:
+            fila.insert(*inserir_na_fila)
+        return fila
 
     while tarefas_pendentes:
         # encher a fila com tarefas que chegaram até o tempo atual e estão fora dela
