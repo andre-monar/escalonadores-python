@@ -6,8 +6,8 @@ from algoritmos._montar_resultado import montar_resultado
 
 def fcfs(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
-    tempo_atual = min(tarefa.chegada for tarefa in tarefas)
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
+    tempo_atual = tarefas_ordenadas[0].chegada
     for tarefa in tarefas_ordenadas:
         tempo_atual = max(tempo_atual, tarefa.chegada)
         # add troca de contexto
@@ -26,6 +26,7 @@ def fcfs(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
         ))
         tempo_atual += tarefa.tp
 
+        
     return montar_resultado(
         tarefas, periodos_por_tarefa,
         algoritmo="FCFS", ctx_time=ctx_time,

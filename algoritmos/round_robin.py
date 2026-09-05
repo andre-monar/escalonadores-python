@@ -7,29 +7,34 @@ from models.tarefa import Tarefa
 from algoritmos._montar_resultado import montar_resultado
 from algoritmos.validacoes import validar_quantum
 
-
 def round_robin(tarefas: list[Tarefa], ctx_time: float, quantum: int) -> ResultadoSimulacao:
     validar_quantum(ctx_time, quantum)
 
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
     
-    tempo_atual = min(tarefa.chegada for tarefa in tarefas)
     fila: list[Tarefa] = []
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
+    tempo_atual = tarefas_ordenadas[0].chegada
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
     tarefas_pendentes = copy.deepcopy(tarefas_ordenadas)
     tarefa_atual = None
+
+    def _encher_fila_e_remover_da_lista(tarefas_pendentes, tempo_atual, fila):
+            remover_da_lista = []
+            for tarefa in tarefas_pendentes:
+                if tempo_atual >= tarefa.chegada and tarefa not in fila:
+                    fila.append(tarefa)
+                    remover_da_lista.append(tarefa)
+            
+            for tarefa in remover_da_lista:
+                tarefas_pendentes.remove(tarefa)
+
+            return fila, tarefas_pendentes
+
     while ids_nao_finalizados:
         # encher a fila com tarefas que chegaram até o tempo atual e estão fora dela
-        remover_da_lista = []
-        for tarefa in tarefas_pendentes:
-            if tempo_atual >= tarefa.chegada and tarefa not in fila:
-                fila.append(tarefa)
-                remover_da_lista.append(tarefa)
-        
-        for tarefa in remover_da_lista:
-            tarefas_pendentes.remove(tarefa)
-        
+        fila, tarefas_pendentes = _encher_fila_e_remover_da_lista(tarefas_pendentes, tempo_atual, fila)
+
         if tarefa_atual is not None and tarefa_atual.tp > 0:
             # se a tarefa atual ainda tem tempo restante, ela volta pro fim da fila
             fila.append(tarefa_atual)
@@ -40,6 +45,7 @@ def round_robin(tarefas: list[Tarefa], ctx_time: float, quantum: int) -> Resulta
                 tempo_atual = min(tarefa.chegada for tarefa in tarefas_pendentes)
             continue
         tarefa_nova = fila.pop(0)
+        
         quantum_pendente = quantum
         # add troca de contexto se tarefa mudou
         if tarefa_atual is None or tarefa_nova.id != tarefa_atual.id:

@@ -1,0 +1,35 @@
+import unittest
+
+from algoritmos.sjf import sjf
+from models.tarefa import Tarefa
+
+# Cenário da Aula 5 (enunciado) — mesmas 5 tarefas do FCFS/RR.
+TAREFAS = [
+    Tarefa(id=1, chegada=0, tp=5, prioridade=2),
+    Tarefa(id=2, chegada=0, tp=2, prioridade=3),
+    Tarefa(id=3, chegada=1, tp=4, prioridade=1),
+    Tarefa(id=4, chegada=3, tp=1, prioridade=4),
+    Tarefa(id=5, chegada=5, tp=2, prioridade=5),
+]
+
+
+class TestSJF(unittest.TestCase):
+    def test_sem_custo_de_troca(self):
+        # ordem esperada: T2(0-2) T3(2-6) T4(6-7) T5(7-9) T1(9-14)
+        resultado = sjf(TAREFAS, ctx_time=0)
+        self.assertAlmostEqual(resultado.medias.tt, 5.8, delta=0.05)
+        self.assertAlmostEqual(resultado.medias.tw, 3.0, delta=0.05)
+
+    def test_com_custo_de_troca(self):
+        resultado = sjf(TAREFAS, ctx_time=1)
+        self.assertAlmostEqual(resultado.medias.tt, 7.8, delta=0.05)
+        self.assertAlmostEqual(resultado.medias.tw, 5.0, delta=0.05)
+
+    def test_eficiencia_nao_definida(self):
+        # SJF não tem quantum, então a eficiência (R4) não é definida.
+        resultado = sjf(TAREFAS, ctx_time=1)
+        self.assertIsNone(resultado.parametros.eficiencia)
+
+
+if __name__ == "__main__":
+    unittest.main()
