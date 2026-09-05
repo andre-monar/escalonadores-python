@@ -7,6 +7,7 @@ from matplotlib.figure import Figure
 
 from algoritmos.fcfs import fcfs
 from algoritmos.round_robin import round_robin
+from algoritmos.sjf import sjf
 from algoritmos.validacoes import ErroValidacao
 from models.periodo import TipoPeriodo
 from models.resultado import Parametros, ResultadoSimulacao
@@ -33,7 +34,7 @@ SCHEDULER_OPTIONS = [
     (ALGO_PRIOC, "PRIOc | Prioridade Cooperativa"),
     (ALGO_PRIOP, "PRIOp | Prioridade Preemptiva"),
 ]
-ALGORITMOS_DESABILITADOS = {ALGO_SJF, ALGO_SRTF, ALGO_PRIOC, ALGO_PRIOP}
+ALGORITMOS_DESABILITADOS = {ALGO_SRTF, ALGO_PRIOC, ALGO_PRIOP}
 ALGORITMOS_COM_PRIORIDADE = {ALGO_PRIOC, ALGO_PRIOP}
 
 CORRECTION_OPTIONS = ["Nenhum", "Herança", "Teto"]
@@ -41,6 +42,7 @@ CORRECTION_DEFAULT = "Nenhum"
 
 CHART_EXECUCAO = theme.PURPLE
 CHART_TROCA_CONTEXTO = "#f7b955"
+CHART_ESPERA = theme.PURPLE  # mesma cor da execução, só que vazada (sem preenchimento)
 
 SIDEBAR_WIDTH = 400
 SIDEBAR_PAD = 18
@@ -444,6 +446,8 @@ class BuildView(tk.Frame):
                 resultado = fcfs(tarefas, ctx_time=parametros.ctx_time)
             elif parametros.algoritmo == ALGO_ROUND_ROBIN:
                 resultado = round_robin(tarefas, ctx_time=parametros.ctx_time, quantum=parametros.quantum)
+            elif parametros.algoritmo == ALGO_SJF:
+                resultado = sjf(tarefas, ctx_time=parametros.ctx_time)
             else:
                 return  # os outros algoritmos ainda não estão implementados
         except ErroValidacao as erro:
@@ -554,6 +558,20 @@ class BuildView(tk.Frame):
         self.fig.tight_layout()
         self.chart_canvas.draw()
 
+    @staticmethod
+    def _calcular_esperas(tr):
+        """Espera nunca é um Periodo de verdade (nenhum algoritmo registra) — é
+        derivada aqui: os buracos entre a chegada e o que os períodos já cobrem.
+        Não conta o tempo depois do último período (aí a tarefa já terminou)."""
+        periodos_ordenados = sorted(tr.periodos, key=lambda p: p.inicio)
+        esperas = []
+        posicao = tr.tarefa.chegada
+        for periodo in periodos_ordenados:
+            if periodo.inicio > posicao:
+                esperas.append((posicao, periodo.inicio))
+            posicao = max(posicao, periodo.fim)
+        return esperas
+
     def _desenhar_resultado(self, resultado: ResultadoSimulacao):
         self.ax.clear()
         self._style_axes()
@@ -562,11 +580,19 @@ class BuildView(tk.Frame):
         tempo_max = max(periodo.fim for tr in tarefas_resultado for periodo in tr.periodos)
 
         for tr in tarefas_resultado:
+            for inicio, fim in self._calcular_esperas(tr):
+                self.ax.barh(
+                    tr.tarefa.id, fim - inicio, left=inicio,
+                    fill=False, edgecolor=CHART_ESPERA, linewidth=1.2, height=0.55,
+                )
             for periodo in tr.periodos:
-                cor = CHART_EXECUCAO if periodo.tipo == TipoPeriodo.EXECUCAO else CHART_TROCA_CONTEXTO
+                if periodo.tipo == TipoPeriodo.EXECUCAO:
+                    cor, borda = CHART_EXECUCAO, theme.PURPLE_DARK
+                else:
+                    cor, borda = CHART_TROCA_CONTEXTO, theme.CARD_BG
                 self.ax.barh(
                     tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
-                    color=cor, edgecolor=theme.CARD_BG, height=0.55,
+                    color=cor, edgecolor=borda, linewidth=1.2, height=0.55,
                 )
                 if periodo.preemptado_por_quantum:
                     self.ax.plot(
