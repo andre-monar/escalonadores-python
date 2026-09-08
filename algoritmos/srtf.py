@@ -6,7 +6,9 @@ from models.tarefa import Tarefa
 
 from algoritmos._montar_resultado import montar_resultado
 
-
+# algoritmo SRTF:
+# - Shortest Remaining Time First
+# - é uma variação do SJF, mas preemptivo: tarefas podem ser interrompidas se uma nova tarefa chegar com tempo de processamento menor que o restante da tarefa atual
 def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
 
@@ -15,6 +17,7 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     tarefas_pendentes = copy.deepcopy(tarefas_ordenadas)
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
     fila: list[Tarefa]= []
+    tarefa_atual = None
 
     def _encher_fila(tarefas_pendentes, tempo_atual, fila):
         # variavel pra inserir só fora do loop, nao durante a iteração
@@ -27,15 +30,29 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                 # se a fila não estiver vazia, adiciona a tarefa na posição correta
                 for i, tarefa_na_fila in enumerate(fila):
                     if tarefa_iterada.tp < tarefa_na_fila.tp:
-                        inserir_na_fila.append((i, tarefa_iterada))
+                        fila.insert(i, tarefa_iterada)
+                        break
                     else:
                         # se for a ultima, adiciona no final
                         if i == len(fila) - 1:
-                            inserir_na_fila.append((len(fila), tarefa_iterada))
-        if inserir_na_fila:
-            for tarefa in inserir_na_fila:
-                fila.insert(*tarefa)
+                            fila.append(tarefa_iterada)
+                            break
         return fila
+
+    def _pegar_proxima_tarefa(tarefas_ordenadas, tempo_atual):
+            proxima_tarefa = None
+            for tarefa in tarefas_ordenadas:
+                if tarefa.chegada > tempo_atual:
+                    if proxima_tarefa is None or tarefa.chegada < proxima_tarefa.chegada:
+                        proxima_tarefa = tarefa
+            return proxima_tarefa
+
+    def _proxima_preempcao(tempo_atual, tarefa_atual, proxima_tarefa):
+            final_previsto = tempo_atual + tarefa_atual.tp 
+            tempo_incremental = tarefa_atual.tp 
+            if proxima_tarefa is not None and final_previsto > proxima_tarefa.chegada:
+                tempo_incremental = proxima_tarefa.chegada - tempo_atual
+            return tempo_incremental
 
     while ids_nao_finalizados:
         # definir tarefa
@@ -46,39 +63,39 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                 tempo_atual = min(tarefa.chegada for tarefa in tarefas_pendentes)
             continue
         
+        # verificar se tarefa mudou, pra inserir ctx
+        trocou = False
+        if tarefa_atual is None or tarefa_atual != fila[0]:
+            trocou = True
+        
         tarefa_atual = fila.pop(0)
-        # ir só até a próxima tarefa
-        # pegar próxima tarefa
-        proxima_tarefa = None
-        for tarefa in tarefas_ordenadas:
-            if tarefa.chegada > tempo_atual:
-                if proxima_tarefa is None or tarefa.chegada < proxima_tarefa.chegada:
-                    proxima_tarefa = tarefa
+        proxima_tarefa = _pegar_proxima_tarefa(tarefas_ordenadas, tempo_atual)
+       
+        # add troca de contexto se tarefa trocou
+        if trocou:
+            periodos_por_tarefa[tarefa_atual.id].append(Periodo(
+                inicio=tempo_atual,
+                fim=tempo_atual + ctx_time,
+                tipo=TipoPeriodo.TROCA_CONTEXTO
+            ))
+            tempo_atual += ctx_time
 
+         # ir só até a próxima tarefa (preempta toda vez que uma chega, e ai confere)
+        tempo_incremental = _proxima_preempcao(tempo_atual, tarefa_atual, proxima_tarefa)
         
-        final_previsto = tempo_atual + tarefa_atual.tp + ctx_time
-        tempo_incremental = tarefa_atual.tp
-        
-        if proxima_tarefa is not None and final_previsto > proxima_tarefa.chegada:
-            tempo_incremental = proxima_tarefa.chegada - tarefa_atual.chegada
+        if tempo_incremental > 0:
+            # add execucao
+            periodos_por_tarefa[tarefa_atual.id].append(Periodo(
+                inicio=tempo_atual,
+                fim=tempo_atual + tempo_incremental,
+                tipo=TipoPeriodo.EXECUCAO
+            ))
+            tempo_atual += tempo_incremental
 
-        # add troca de contexto
-        periodos_por_tarefa[tarefa_atual.id].append(Periodo(
-            inicio=tempo_atual,
-            fim=tempo_atual + ctx_time,
-            tipo=TipoPeriodo.TROCA_CONTEXTO
-        ))
-        tempo_atual += ctx_time
-
-        # add execucao
-        periodos_por_tarefa[tarefa_atual.id].append(Periodo(
-            inicio=tempo_atual,
-            fim=tempo_atual + tempo_incremental,
-            tipo=TipoPeriodo.EXECUCAO
-        ))
-        tempo_atual += tempo_incremental
         # deduzir tempo da tarefa
         tarefa_atual.tp -= tempo_incremental
+
+        # remover tarefa se ela tiver terminado
         if tarefa_atual.tp <= 0:
             ids_nao_finalizados.remove(tarefa_atual.id)
             tarefas_pendentes.remove(tarefa_atual)

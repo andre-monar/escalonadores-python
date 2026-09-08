@@ -26,14 +26,13 @@ def sjf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                 # se a fila não estiver vazia, adiciona a tarefa na posição correta
                 for i, tarefa_na_fila in enumerate(fila):
                     if tarefa_iterada.tp < tarefa_na_fila.tp:
-                        inserir_na_fila.append((i, tarefa_iterada))
+                        fila.insert(i, tarefa_iterada)
+                        break
                     else:
                         # se for a ultima, adiciona no final
                         if i == len(fila) - 1:
-                            inserir_na_fila.append((len(fila), tarefa_iterada))
-        if inserir_na_fila:
-            for tarefa in inserir_na_fila:
-                fila.insert(*tarefa)
+                            fila.append(tarefa_iterada)
+                            break
         return fila
 
     while tarefas_pendentes:
