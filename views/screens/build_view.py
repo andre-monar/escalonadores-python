@@ -43,7 +43,7 @@ CORRECTION_DEFAULT = "Nenhum"
 
 CHART_EXECUCAO = theme.PURPLE
 CHART_TROCA_CONTEXTO = "#f7b955"
-CHART_ESPERA = theme.PURPLE  # mesma cor da execução, só que vazada (sem preenchimento)
+CHART_ESPERA = theme.PURPLE_DARK  # mesma borda da execução/troca, só que vazada (sem preenchimento)
 
 SIDEBAR_WIDTH = 400
 SIDEBAR_PAD = 18
