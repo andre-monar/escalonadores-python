@@ -9,6 +9,7 @@ from algoritmos.fcfs import fcfs
 from algoritmos.round_robin import round_robin
 from algoritmos.sjf import sjf
 from algoritmos.prioc import prioc
+from algoritmos.priop import priop
 from algoritmos.srtf import srtf
 from algoritmos.validacoes import ErroValidacao
 from models.periodo import TipoPeriodo
@@ -36,7 +37,7 @@ SCHEDULER_OPTIONS = [
     (ALGO_PRIOC, "PRIOc | Prioridade Cooperativa"),
     (ALGO_PRIOP, "PRIOp | Prioridade Preemptiva"),
 ]
-ALGORITMOS_DESABILITADOS = {ALGO_PRIOP}
+ALGORITMOS_DESABILITADOS = set()
 ALGORITMOS_COM_PRIORIDADE = {ALGO_PRIOC, ALGO_PRIOP}
 
 CORRECTION_OPTIONS = ["Nenhum", "Herança", "Teto"]
@@ -454,6 +455,8 @@ class BuildView(tk.Frame):
                 resultado = srtf(tarefas, ctx_time=parametros.ctx_time)
             elif parametros.algoritmo == ALGO_PRIOC:
                 resultado = prioc(tarefas, ctx_time=parametros.ctx_time)
+            elif parametros.algoritmo == ALGO_PRIOP:
+                resultado = priop(tarefas, ctx_time=parametros.ctx_time, protocolo=parametros.protocolo)
             else:
                 return  # os outros algoritmos ainda não estão implementados
         except ErroValidacao as erro:

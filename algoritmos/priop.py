@@ -6,7 +6,8 @@ from models.tarefa import Tarefa
 
 from algoritmos._montar_resultado import montar_resultado
 
-def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
+
+def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
 
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
@@ -24,7 +25,7 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                     continue
                 # se a fila não estiver vazia, adiciona a tarefa na posição correta
                 for i, tarefa_na_fila in enumerate(fila):
-                    if tarefa_iterada.tp < tarefa_na_fila.tp:
+                    if tarefa_iterada.prioridade > tarefa_na_fila.prioridade:
                         fila.insert(i, tarefa_iterada)
                         break
                     else:
@@ -97,5 +98,5 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
 
     return montar_resultado(
         tarefas, periodos_por_tarefa,
-        algoritmo="SRTF", ctx_time=ctx_time,
+        algoritmo="PRIOp", ctx_time=ctx_time, protocolo=protocolo,
     )
