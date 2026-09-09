@@ -16,11 +16,19 @@ from models.periodo import TipoPeriodo
 from models.resultado import Parametros, ResultadoSimulacao
 from models.tarefa import Tarefa
 from views import theme
-from views.components.widgets import Dropdown, PlaceholderNumericEntry, RoundedButton, ScrollableFrame, TrashIcon
+from views.components.widgets import (
+    ColorPickerButton, Dropdown, PlaceholderNumericEntry, RoundedButton, ScrollableFrame, TrashIcon,
+)
 
 COLUMN_LABELS = ["ID", "Chegada", "", "Duração", "", "Prioridade", "", ""]
 # (col_entry, col_unidade, unidade, placeholder/mínimo)
 TASK_FIELDS = [(1, 2, "s", 0), (3, 4, "s", 0), (5, 6, "", 1)]
+
+RESOURCE_COLUMN_LABELS = ["ID", "Cor", "Configurar", ""]
+RESOURCE_COLORS = [
+    "#ff6b6b", "#ffa94d", "#ffd43b", "#69db7c", "#38d9a9",
+    "#4dabf7", "#748ffc", "#9775fa", "#f783ac", "#ced4da",
+]
 
 ALGO_FCFS = "FCFS"
 ALGO_SJF = "SJF"
@@ -86,6 +94,7 @@ class BuildView(tk.Frame):
         super().__init__(parent, bg=theme.BG)
         self.controller = controller
         self.task_rows = []
+        self.resource_rows = []
 
         self._build_topbar()
         self._build_body()
@@ -176,10 +185,13 @@ class BuildView(tk.Frame):
         # padding depois (pack_configure preserva a posição; um pack() novo não)
         self.specs_error_label.pack(anchor="w", padx=SIDEBAR_PAD, pady=0)
 
-        tk.Label(
+        self._build_resources(conteudo, content_width)
+
+        self._tarefas_titulo = tk.Label(
             conteudo, text="Tarefas", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
             font=(theme.FONT_FAMILY, 14, "bold"),
-        ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
+        )
+        self._tarefas_titulo.pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
 
         RoundedButton(
             conteudo, "Abrir cenário",
@@ -249,6 +261,91 @@ class BuildView(tk.Frame):
 
         self._update_specs_visibility()
 
+    def _build_resources(self, sidebar, content_width):
+        # a seção inteira (título, tabela, botão) só aparece pro PRIOp — é
+        # onde entram os recursos compartilhados pra seção crítica (R5-R7).
+        self.resources_section = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
+
+        tk.Label(
+            self.resources_section, text="Recursos", bg=theme.SIDEBAR_BG, fg=theme.TEXT,
+            font=(theme.FONT_FAMILY, 14, "bold"),
+        ).pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
+
+        header = tk.Frame(self.resources_section, bg=theme.SIDEBAR_BG)
+        header.pack(fill="x", padx=SIDEBAR_PAD)
+        self._configure_resource_row_columns(header)
+        for col, text in enumerate(RESOURCE_COLUMN_LABELS):
+            tk.Label(
+                header, text=text, bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+                font=(theme.FONT_FAMILY, 9, "bold"), anchor="w",
+            ).grid(row=0, column=col, sticky="ew", padx=4)
+
+        self.resource_rows_container = tk.Frame(self.resources_section, bg=theme.SIDEBAR_BG)
+        self.resource_rows_container.pack(fill="x", padx=SIDEBAR_PAD, pady=(6, 14))
+
+        RoundedButton(
+            self.resources_section, "+  Adicionar recurso",
+            command=self._add_resource_row,
+            width=content_width, height=48, radius=10,
+            bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
+            fg=theme.TEXT, outline=theme.BORDER,
+            font=(theme.FONT_FAMILY, 11, "bold"),
+        ).pack(padx=SIDEBAR_PAD, pady=(0, 16))
+
+        self._update_resources_visibility()
+
+    def _update_resources_visibility(self):
+        if self.scheduler_dropdown.get() == ALGO_PRIOP:
+            self.resources_section.pack(anchor="w", fill="x", before=self._tarefas_titulo)
+        else:
+            self.resources_section.pack_forget()
+
+    @staticmethod
+    def _configure_resource_row_columns(row):
+        row.grid_columnconfigure(0, weight=0, minsize=26)   # ID (mesmo tamanho de Tarefas)
+        row.grid_columnconfigure(1, weight=0, minsize=40)    # Cor
+        row.grid_columnconfigure(2, weight=1)                # Configurar
+        row.grid_columnconfigure(3, weight=0, minsize=34)    # lixeira
+
+    def _add_resource_row(self):
+        row = tk.Frame(self.resource_rows_container, bg=theme.SIDEBAR_BG)
+        row.pack(fill="x", pady=5)
+        self._configure_resource_row_columns(row)
+
+        id_label = tk.Label(
+            row, text=str(len(self.resource_rows) + 1), bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+            font=(theme.FONT_FAMILY, 10), anchor="w",
+        )
+        id_label.grid(row=0, column=0, sticky="ew", padx=4)
+
+        cor_picker = ColorPickerButton(row, RESOURCE_COLORS, size=28)
+        cor_picker.grid(row=0, column=1, sticky="w", padx=4)
+
+        configurar_btn = RoundedButton(
+            row, "Configurar",
+            command=lambda: None,  # ainda não configurável, só o esqueleto da tela por enquanto
+            width=110, height=36, radius=10,
+            bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
+            fg=theme.TEXT, outline=theme.BORDER,
+            font=(theme.FONT_FAMILY, 10, "bold"),
+        )
+        configurar_btn.grid(row=0, column=2, sticky="ew", padx=4)
+
+        remove_btn = TrashIcon(row, command=lambda: self._remove_resource_row(entry_data), size=22)
+        remove_btn.grid(row=0, column=3, sticky="e", padx=4)
+
+        entry_data = {"frame": row, "id_label": id_label, "cor_picker": cor_picker}
+        self.resource_rows.append(entry_data)
+
+    def _remove_resource_row(self, entry_data):
+        entry_data["frame"].destroy()
+        self.resource_rows.remove(entry_data)
+        self._renumber_resource_rows()
+
+    def _renumber_resource_rows(self):
+        for index, row in enumerate(self.resource_rows, start=1):
+            row["id_label"].config(text=str(index))
+
     @staticmethod
     def _spec_label(parent, text):
         return tk.Label(
@@ -266,6 +363,7 @@ class BuildView(tk.Frame):
     def _on_algorithm_change(self, _value):
         self._update_specs_visibility()
         self._update_priority_lock()
+        self._update_resources_visibility()
         self._limpar_erro_specs()
 
     def _mostrar_erro_specs(self, mensagem):
