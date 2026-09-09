@@ -6,8 +6,8 @@ from models.tarefa import Tarefa
 
 from algoritmos._montar_resultado import montar_resultado
 
-def sjf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
 
+def prioc(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
 
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
@@ -23,7 +23,7 @@ def sjf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
                     continue
                 # se a fila não estiver vazia, adiciona a tarefa na posição correta
                 for i, tarefa_na_fila in enumerate(fila):
-                    if tarefa_iterada.tp < tarefa_na_fila.tp:
+                    if tarefa_iterada.prioridade > tarefa_na_fila.prioridade:
                         fila.insert(i, tarefa_iterada)
                         break
                     else:
@@ -65,5 +65,5 @@ def sjf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
 
     return montar_resultado(
         tarefas, periodos_por_tarefa,
-        algoritmo="SJF", ctx_time=ctx_time,
+        algoritmo="PRIOc", ctx_time=ctx_time,
     )

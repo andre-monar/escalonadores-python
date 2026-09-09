@@ -20,8 +20,6 @@ def srtf(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
     tarefa_atual = None
 
     def _encher_fila(tarefas_pendentes, tempo_atual, fila):
-        # variavel pra inserir só fora do loop, nao durante a iteração
-        inserir_na_fila: list[tuple[int, Tarefa]] = []
         for tarefa_iterada in tarefas_pendentes:
             if tempo_atual >= tarefa_iterada.chegada and tarefa_iterada not in fila:
                 if not fila:
