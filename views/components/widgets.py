@@ -127,7 +127,8 @@ class Dropdown(tk.Frame):
     (o ttk.Combobox nativo não dá pra estilizar direito, principalmente a lista)."""
 
     def __init__(self, parent, options, initial=None, width=300, height=48,
-                 command=None, parent_bg=None, desabilitados=None):
+                 command=None, parent_bg=None, desabilitados=None, options_provider=None,
+                 placeholder=None):
         bg = parent_bg or parent.cget("bg")
         super().__init__(parent, bg=bg)
 
@@ -138,9 +139,20 @@ class Dropdown(tk.Frame):
         self.command = command
         self.width = width
         self.height = height
+        # se informado, é chamado toda vez que o popup abre — pra listas que
+        # mudam depois de criado o dropdown (ex: "tarefas registradas agora")
+        self.options_provider = options_provider
+        # com placeholder definido, nenhuma opção é selecionada por padrão —
+        # sem ele, mantém o comportamento antigo (cai na primeira opção)
+        self.placeholder = placeholder
 
         valores = [valor for valor, _ in self.options]
-        self.value = initial if initial in valores else (valores[0] if valores else "")
+        if initial is not None and initial in valores:
+            self.value = initial
+        elif self.placeholder is not None:
+            self.value = None
+        else:
+            self.value = valores[0] if valores else ""
         self._popup = None
         self._outside_click_binding = None
         self._unmap_binding = None
@@ -179,10 +191,22 @@ class Dropdown(tk.Frame):
                               fill=theme.TEXT_MUTED, outline="")
 
     def _rotulo_atual(self):
+        if self.value is None:
+            return self.placeholder or ""
         for valor, rotulo in self.options:
             if valor == self.value:
                 return rotulo
         return self.value
+
+    def set_options(self, options):
+        """Atualiza a lista de opções (ex: tarefas registradas mudaram). Se o
+        valor atual não existir mais na lista nova, volta pro placeholder (ou
+        pra primeira opção, se não tiver placeholder) em vez de manter uma
+        referência inválida."""
+        self.options = [o if isinstance(o, tuple) else (o, o) for o in options]
+        valores = [v for v, _ in self.options]
+        if self.value not in valores:
+            self.value = None if self.placeholder is not None else (valores[0] if valores else "")
 
     def _toggle_popup(self, _event=None):
         if self._popup is not None:
@@ -191,6 +215,8 @@ class Dropdown(tk.Frame):
             self._open_popup()
 
     def _open_popup(self):
+        if self.options_provider is not None:
+            self.set_options(self.options_provider())
         self._render_field(open_state=True)
 
         x = self.winfo_rootx()
