@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 from views import theme
-from views.components.widgets import RoundedButton
+from views.components.rounded_button import RoundedButton
 from views.screens.build_view import validar_cenario
 
 

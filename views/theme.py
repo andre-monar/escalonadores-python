@@ -12,9 +12,6 @@ PURPLE = "#7c5cff"
 PURPLE_HOVER = "#9376ff"
 PURPLE_DARK = "#4338ca"
 
-GRADIENT_START = "#7c5cff"
-GRADIENT_END = "#4f6bff"
-
 DANGER = "#ff6b6b"
 
 FONT_FAMILY = "Segoe UI"

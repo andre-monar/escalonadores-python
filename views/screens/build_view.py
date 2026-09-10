@@ -16,9 +16,12 @@ from models.periodo import TipoPeriodo
 from models.resultado import Parametros, ResultadoSimulacao
 from models.tarefa import Tarefa
 from views import theme
-from views.components.widgets import (
-    ColorPickerButton, Dropdown, PlaceholderNumericEntry, RoundedButton, ScrollableFrame, TrashIcon,
-)
+from views.components.color_picker_button import ColorPickerButton
+from views.components.dropdown import Dropdown
+from views.components.placeholder_numeric_entry import PlaceholderNumericEntry
+from views.components.rounded_button import RoundedButton
+from views.components.scrollable_frame import ScrollableFrame
+from views.components.trash_icon_button import TrashIconButton
 
 COLUMN_LABELS = ["ID", "Chegada", "", "Duração", "", "Prioridade", "", ""]
 # (col_entry, col_unidade, unidade, placeholder/mínimo)
@@ -342,7 +345,7 @@ class BuildView(tk.Frame):
         configurar_btn.grid(row=0, column=2, sticky="ew", padx=4)
         entry_data["configurar_btn"] = configurar_btn
 
-        remove_btn = TrashIcon(row, command=lambda: self._remove_resource_row(entry_data), size=22)
+        remove_btn = TrashIconButton(row, command=lambda: self._remove_resource_row(entry_data), size=22)
         remove_btn.grid(row=0, column=3, sticky="e", padx=4)
 
         self.resource_rows.append(entry_data)
@@ -508,7 +511,7 @@ class BuildView(tk.Frame):
         t_final_tarefa.grid(row=0, column=4, sticky="ew", padx=3, ipady=4)
         t_final_tarefa.set_locked(True)
 
-        remove_btn = TrashIcon(row, command=lambda: self._remover_vinculo(popup_state, vinculo), size=18)
+        remove_btn = TrashIconButton(row, command=lambda: self._remover_vinculo(popup_state, vinculo), size=18)
         remove_btn.grid(row=0, column=5, sticky="e", padx=3)
 
         msg_label = tk.Label(
@@ -741,7 +744,7 @@ class BuildView(tk.Frame):
                 font=(theme.FONT_FAMILY, 9),
             ).grid(row=0, column=col_unidade, sticky="w")
 
-        remove_btn = TrashIcon(row, command=lambda: self._remove_task_row(entry_data), size=22)
+        remove_btn = TrashIconButton(row, command=lambda: self._remove_task_row(entry_data), size=22)
         remove_btn.grid(row=0, column=7, sticky="e", padx=4)
 
         prioridade_entry = entries[2]
