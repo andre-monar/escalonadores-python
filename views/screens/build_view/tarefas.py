@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from models.tarefa import Tarefa
+from models.tarefa import Recurso, Tarefa
 from views import theme
 from views.components.placeholder_numeric_entry import PlaceholderNumericEntry
 from views.components.rounded_button import RoundedButton
@@ -145,9 +145,12 @@ class TarefasMixin:
 
     # --------------------------------------------------------- monta objetos
     def _build_tarefas(self) -> list[Tarefa]:
+        """Chame só depois de _limpar_tarefas_invalidas — a posição de cada
+        linha em self.task_rows (1-based) só bate com o id final da tarefa
+        depois que as linhas sem duração válida já foram removidas."""
         tarefas = []
         proximo_id = 1
-        for row in self.task_rows:
+        for indice_na_tela, row in enumerate(self.task_rows, start=1):
             chegada_entry, duracao_entry, prioridade_entry = row["entries"]
             duracao = duracao_entry.get_value()
             if duracao <= 0:
@@ -157,6 +160,22 @@ class TarefasMixin:
                 chegada=chegada_entry.get_value(),
                 tp=duracao,
                 prioridade=prioridade_entry.get_value(),
+                recursos=self._build_recursos_da_tarefa(indice_na_tela),
             ))
             proximo_id += 1
         return tarefas
+
+    def _build_recursos_da_tarefa(self, indice_na_tela: int) -> list[Recurso]:
+        """Vínculos configurados na seção Recursos pra essa tarefa. `id` do
+        Recurso é a posição do recurso em self.resource_rows (1-based) — mesma
+        convenção de id "por posição" já usada pras tarefas."""
+        recursos = []
+        for indice_recurso, recurso in enumerate(self.resource_rows, start=1):
+            for vinculo in recurso["vinculos"]:
+                if vinculo["tarefa_index"] == indice_na_tela:
+                    recursos.append(Recurso(
+                        id=indice_recurso,
+                        inicio=vinculo["t_inicial_recurso"],
+                        duracao=vinculo["t_final_recurso"] - vinculo["t_inicial_recurso"],
+                    ))
+        return recursos

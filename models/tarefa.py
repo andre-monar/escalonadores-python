@@ -1,9 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
-class SecaoCritica:
-    """Trecho da execução própria da tarefa em que ela detém o recurso R (R5-R7)."""
+class Recurso:
+    id: int
     inicio: int
     duracao: int
 
@@ -14,4 +14,4 @@ class Tarefa:
     chegada: int
     tp: int # tempo processamento
     prioridade: int
-    secao_critica: SecaoCritica | None = None
+    recursos: list[Recurso] = field(default_factory=list)

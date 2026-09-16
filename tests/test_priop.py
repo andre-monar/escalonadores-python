@@ -4,7 +4,7 @@ from algoritmos.priop import priop
 from models.tarefa import Tarefa
 
 # Cenário da Aula 5 (enunciado) — mesmas 5 tarefas dos outros algoritmos.
-# Fase 1: nenhuma tarefa usa secao_critica, só testa a preempção por prioridade.
+# Fase 1: nenhuma tarefa usa recursos, só testa a preempção por prioridade.
 # Convenção: MAIOR valor de prioridade = mais prioritária.
 TAREFAS = [
     Tarefa(id=1, chegada=0, tp=5, prioridade=2),
