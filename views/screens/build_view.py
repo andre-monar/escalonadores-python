@@ -16,6 +16,7 @@ from models.periodo import TipoPeriodo
 from models.resultado import Parametros, ResultadoSimulacao
 from models.tarefa import Tarefa
 from views import theme
+from views.cenario_io import abrir_cenario_de_arquivo
 from views.components.color_picker_button import ColorPickerButton
 from views.components.dropdown import Dropdown
 from views.components.placeholder_numeric_entry import PlaceholderNumericEntry
@@ -64,36 +65,6 @@ CHART_ESPERA = theme.PURPLE_DARK  # mesma borda da execução/troca, só que vaz
 
 SIDEBAR_WIDTH = 400
 SIDEBAR_PAD = 18
-
-
-def validar_cenario(cenario) -> bool:
-    """Confere se um dict lido de um .json tem a cara de um cenário salvo por
-    essa tela — usado pelo HomeView antes de tentar carregar (R2: rejeitar
-    arquivo inválido em vez de deixar a tela num estado quebrado)."""
-    if not isinstance(cenario, dict):
-        return False
-
-    algoritmos_validos = {valor for valor, _ in SCHEDULER_OPTIONS}
-    if cenario.get("algoritmo") not in algoritmos_validos:
-        return False
-    if cenario.get("protocolo_correcao") not in CORRECTION_OPTIONS:
-        return False
-    if not isinstance(cenario.get("ctx_time"), (int, float)):
-        return False
-    if not isinstance(cenario.get("quantum"), (int, float)):
-        return False
-
-    tarefas = cenario.get("tarefas")
-    if not isinstance(tarefas, list):
-        return False
-    for tarefa in tarefas:
-        if not isinstance(tarefa, dict):
-            return False
-        for chave in ("chegada", "duracao", "prioridade"):
-            if not isinstance(tarefa.get(chave), (int, float)):
-                return False
-
-    return True
 
 
 class BuildView(tk.Frame):
@@ -890,23 +861,12 @@ class BuildView(tk.Frame):
             json.dump(cenario, arquivo, indent=2, ensure_ascii=False)
 
     def _on_open_scenario_click(self):
-        caminho = filedialog.askopenfilename(
-            title="Abrir cenário",
-            filetypes=[("Cenário (JSON)", "*.json")],
-        )
-        if not caminho:
+        cenario, erro = abrir_cenario_de_arquivo()
+        if erro:
+            self._mostrar_erro_tarefas(erro)
+            return
+        if cenario is None:
             return  # usuário cancelou o diálogo
-
-        try:
-            with open(caminho, encoding="utf-8") as arquivo:
-                cenario = json.load(arquivo)
-        except (OSError, json.JSONDecodeError):
-            self._mostrar_erro_tarefas("Esse arquivo não é um cenário válido.")
-            return
-
-        if not validar_cenario(cenario):
-            self._mostrar_erro_tarefas("Esse arquivo não é um cenário válido.")
-            return
 
         self.carregar_cenario(cenario)
 

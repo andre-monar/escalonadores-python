@@ -1,10 +1,8 @@
-import json
 import tkinter as tk
-from tkinter import filedialog
 
 from views import theme
+from views.cenario_io import abrir_cenario_de_arquivo
 from views.components.rounded_button import RoundedButton
-from views.screens.build_view import validar_cenario
 
 
 class HomeView(tk.Frame):
@@ -62,23 +60,12 @@ class HomeView(tk.Frame):
         self.error_label.pack(pady=(14, 0))
 
     def _on_open_scenario_click(self):
-        caminho = filedialog.askopenfilename(
-            title="Abrir cenário",
-            filetypes=[("Cenário (JSON)", "*.json")],
-        )
-        if not caminho:
+        cenario, erro = abrir_cenario_de_arquivo()
+        if erro:
+            self.error_label.config(text=erro)
+            return
+        if cenario is None:
             return  # usuário cancelou o diálogo
-
-        try:
-            with open(caminho, encoding="utf-8") as arquivo:
-                cenario = json.load(arquivo)
-        except (OSError, json.JSONDecodeError):
-            self.error_label.config(text="Esse arquivo não é um cenário válido.")
-            return
-
-        if not validar_cenario(cenario):
-            self.error_label.config(text="Esse arquivo não é um cenário válido.")
-            return
 
         self.error_label.config(text="")
         build_view = self.controller.frames["BuildView"]
