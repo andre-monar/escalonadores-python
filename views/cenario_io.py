@@ -1,15 +1,11 @@
 import json
 from tkinter import filedialog
 
+from views.screens.build_view.constants import CORRECTION_OPTIONS, SCHEDULER_OPTIONS
+
 
 def validar_cenario(cenario) -> bool:
-    """Confere se um dict lido de um .json tem a cara de um cenário salvo pela
-    tela de Novo Cenário — usado antes de tentar carregar (R2: rejeitar
-    arquivo inválido em vez de deixar a tela num estado quebrado)."""
-    # import atrasado (não no topo do arquivo) só pra evitar import circular:
-    # build_view.py também importa desse módulo (abrir_cenario_de_arquivo).
-    from views.screens.build_view import CORRECTION_OPTIONS, SCHEDULER_OPTIONS
-
+    """Confere se um dict lido de um .json é um cenário válido."""
     if not isinstance(cenario, dict):
         return False
 
