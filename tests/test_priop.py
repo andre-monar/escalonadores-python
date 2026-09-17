@@ -1,7 +1,7 @@
 import unittest
 
 from algoritmos.priop import priop
-from models.tarefa import Tarefa
+from models.tarefa import Recurso, Tarefa
 
 # Cenário da Aula 5 (enunciado) — mesmas 5 tarefas dos outros algoritmos.
 # Fase 1: nenhuma tarefa usa recursos, só testa a preempção por prioridade.
@@ -35,6 +35,28 @@ class TestPRIOp(unittest.TestCase):
         # PRIOp não tem quantum, então a eficiência (R4) não é definida.
         resultado = priop(TAREFAS, ctx_time=1)
         self.assertIsNone(resultado.parametros.eficiencia)
+
+
+class TestPRIOpComRecursos(unittest.TestCase):
+    def test_inversao_de_prioridades_sem_protocolo(self):
+        # Cenário da Aula 6 (enunciado), 4.3 — inversão de prioridades, sem
+        # protocolo de correção (R5). Só t1 (menor prioridade) e t4 (maior)
+        # disputam o recurso R; t2 e t3 preemptam t1 sem nunca usar R, o que
+        # atrasa t4 bem além do tamanho da própria seção crítica dela.
+        tarefas = [
+            Tarefa(id=1, chegada=0, tp=6, prioridade=1, recursos=[Recurso(id=1, inicio=1, duracao=4)]),
+            Tarefa(id=2, chegada=4, tp=4, prioridade=2),
+            Tarefa(id=3, chegada=6, tp=3, prioridade=3),
+            Tarefa(id=4, chegada=2, tp=3, prioridade=4, recursos=[Recurso(id=1, inicio=1, duracao=1)]),
+        ]
+        resultado = priop(tarefas, ctx_time=0)
+
+        self.assertAlmostEqual(resultado.medias.tt, 9.75, delta=0.05)
+        self.assertAlmostEqual(resultado.medias.tw, 5.75, delta=0.05)
+
+        tw_esperado = {1: 10, 2: 3, 3: 0, 4: 10}
+        for tid, tw in tw_esperado.items():
+            self.assertAlmostEqual(resultado.metricas_por_tarefa[tid].tw, tw, delta=0.05)
 
 
 if __name__ == "__main__":
