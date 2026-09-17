@@ -14,7 +14,6 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
     tempo_atual = tarefas_ordenadas[0].chegada
     tarefas_pendentes = copy.deepcopy(tarefas_ordenadas)
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
-    tp_original_por_id = {tarefa.id: tarefa.tp for tarefa in tarefas_ordenadas}
     fila: list[Tarefa]= []
     tarefa_atual = None
 
@@ -44,38 +43,12 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
                         proxima_tarefa = tarefa
             return proxima_tarefa
 
-    def _tempo_executado(tarefa):
-        return tp_original_por_id[tarefa.id] - tarefa.tp
-
-    def _recurso_em_posse(tarefa, tempo_executado):
-        for recurso in tarefa.recursos:
-            if recurso.inicio <= tempo_executado < recurso.inicio + recurso.duracao:
-                return recurso
-        return None
-
     def _proxima_preempcao(tempo_atual, tarefa_atual, proxima_tarefa):
-            final_previsto = tempo_atual + tarefa_atual.tp
-            tempo_incremental = tarefa_atual.tp
+            final_previsto = tempo_atual + tarefa_atual.tp 
+            tempo_incremental = tarefa_atual.tp 
             if proxima_tarefa is not None and final_previsto > proxima_tarefa.chegada:
                 tempo_incremental = proxima_tarefa.chegada - tempo_atual
-
-            # se a tarefa está com recurso em posse, buscar
-            # instante em que ela solta, senao so seria reavaliada na
-            # proxima chegada
-            tempo_executado = _tempo_executado(tarefa_atual)
-            recurso = _recurso_em_posse(tarefa_atual, tempo_executado)
-            if recurso is not None:
-                fim_recurso = recurso.inicio + recurso.duracao - tempo_executado
-                tempo_incremental = min(tempo_incremental, fim_recurso)
-
             return tempo_incremental
-
-    def _barrar_troca_por_recurso(tarefa_atual, fila):
-        if tarefa_atual is None or tarefa_atual not in fila:
-            return
-        if _recurso_em_posse(tarefa_atual, _tempo_executado(tarefa_atual)) is not None:
-            fila.remove(tarefa_atual)
-            fila.insert(0, tarefa_atual)
 
     while ids_nao_finalizados:
         # definir tarefa
@@ -85,14 +58,12 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
             if tarefas_pendentes:
                 tempo_atual = min(tarefa.chegada for tarefa in tarefas_pendentes)
             continue
-
-        _barrar_troca_por_recurso(tarefa_atual, fila)
-
+        
         # verificar se tarefa mudou, pra inserir ctx
         trocou = False
         if tarefa_atual is None or tarefa_atual != fila[0]:
             trocou = True
-
+        
         tarefa_atual = fila.pop(0)
         proxima_tarefa = _pegar_proxima_tarefa(tarefas_ordenadas, tempo_atual)
        
