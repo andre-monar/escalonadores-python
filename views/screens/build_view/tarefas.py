@@ -1,3 +1,4 @@
+import random
 import tkinter as tk
 
 from models.tarefa import Recurso, Tarefa
@@ -20,14 +21,26 @@ class TarefasMixin:
         )
         self._tarefas_titulo.pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
 
+        linha_cenario = tk.Frame(sidebar, bg=theme.SIDEBAR_BG)
+        linha_cenario.pack(fill="x", padx=SIDEBAR_PAD, pady=(0, 10))
+
         RoundedButton(
-            sidebar, "Carregar cenário",
+            linha_cenario, "Carregar cenário...",
             command=self._on_open_scenario_click,
-            width=content_width, height=48, radius=10,
+            width=140, height=48, radius=10,
             bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
             fg=theme.TEXT, outline=theme.BORDER,
             font=(theme.FONT_FAMILY, 11, "bold"),
-        ).pack(padx=SIDEBAR_PAD, pady=(0, 10))
+        ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        RoundedButton(
+            linha_cenario, "Sortear cenário",
+            command=self._on_sortear_cenario_click,
+            width=140, height=48, radius=10,
+            bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
+            fg=theme.TEXT, outline=theme.BORDER,
+            font=(theme.FONT_FAMILY, 11, "bold"),
+        ).pack(side="left", fill="x", expand=True, padx=(4, 0))
 
         self.tasks_error_label = tk.Label(
             sidebar, text="", bg=theme.SIDEBAR_BG, fg=theme.DANGER,
@@ -56,6 +69,20 @@ class TarefasMixin:
             fg=theme.TEXT, outline=theme.BORDER,
             font=(theme.FONT_FAMILY, 11, "bold"),
         ).pack(padx=SIDEBAR_PAD, pady=(0, 16))
+
+    def _on_sortear_cenario_click(self):
+        for row in list(self.task_rows):
+            row["frame"].destroy()
+        self.task_rows.clear()
+
+        for indice in range(5):
+            self._add_task_row()
+            chegada_entry, duracao_entry, prioridade_entry = self.task_rows[-1]["entries"]
+            chegada_entry.set_value(0 if indice == 0 else random.randint(0, 9))
+            duracao_entry.set_value(random.randint(0, 9))
+            prioridade_entry.set_value(random.randint(1, 5))
+
+        self._limpar_erro_tarefas()
 
     @staticmethod
     def _configure_row_columns(row):

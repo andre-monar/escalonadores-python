@@ -48,7 +48,7 @@ class HomeView(tk.Frame):
         ).pack(side="left", padx=12)
 
         RoundedButton(
-            actions, "Abrir cenário",
+            actions, "Abrir cenário...",
             command=self._on_open_scenario_click,
             width=200, height=52, bg=theme.BG, hover=theme.CARD_BG,
             fg=theme.TEXT, outline=theme.BORDER,
