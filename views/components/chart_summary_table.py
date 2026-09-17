@@ -12,9 +12,9 @@ def construir_tabela_resumo(fig, resultado, n_trocas, ancora_y):
     com a altura que ela ocupa."""
     linhas = [
         ("Algoritmo", str(resultado.parametros.algoritmo)),
-        ("Tt médio", f"{resultado.medias.tt:.2f}"),
-        ("Tw médio", f"{resultado.medias.tw:.2f}"),
-        ("1ª exec. média", f"{resultado.medias.t1a_exec:.2f}"),
+        ("Tt médio", f"{resultado.medias.tt:.2f} s"),
+        ("Tw médio", f"{resultado.medias.tw:.2f} s"),
+        ("1ª exec. média", f"{resultado.medias.t1a_exec:.2f} s"),
         ("Trocas de contexto", str(n_trocas)),
     ]
     altura = len(linhas) * ALTURA_LINHA
