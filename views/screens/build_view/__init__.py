@@ -174,4 +174,4 @@ class BuildView(RecursosMixin, TarefasMixin, SpecsMixin, ChartMixin, CenarioMixi
             return
 
         self._limpar_erro_specs()
-        self._desenhar_resultado(resultado)
+        self._desenhar_resultado(resultado, self._cores_dos_recursos())

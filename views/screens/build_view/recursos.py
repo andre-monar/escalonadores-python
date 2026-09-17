@@ -112,6 +112,15 @@ class RecursosMixin:
         for index, row in enumerate(self.resource_rows, start=1):
             row["id_label"].config(text=str(index))
 
+    def _cores_dos_recursos(self) -> dict:
+        """Cor configurada de cada recurso, por posição (mesma convenção de
+        id usada em Recurso.id) — usado pelo gráfico pra colorir a faixa de
+        posse."""
+        return {
+            indice: recurso["cor_picker"].get()
+            for indice, recurso in enumerate(self.resource_rows, start=1)
+        }
+
     # -------------------------------------------------- configurar recurso
     def _tarefas_disponiveis(self):
         """Opções pro dropdown "vincular tarefa" — sempre recalculado na hora
