@@ -22,6 +22,20 @@ class CenarioMixin:
                 }
                 for row in self.task_rows
             ],
+            "recursos": [
+                {
+                    "cor": recurso["cor_picker"].get(),
+                    "vinculos": [
+                        {
+                            "tarefa_index": vinculo["tarefa_index"],
+                            "t_inicial_recurso": vinculo["t_inicial_recurso"],
+                            "t_final_recurso": vinculo["t_final_recurso"],
+                        }
+                        for vinculo in recurso["vinculos"]
+                    ],
+                }
+                for recurso in self.resource_rows
+            ],
         }
 
     def _on_save_click(self):
@@ -67,6 +81,24 @@ class CenarioMixin:
             chegada_entry.set_value(dado.get("chegada", 0))
             duracao_entry.set_value(dado.get("duracao", 0))
             prioridade_entry.set_value(dado.get("prioridade", 1))
+
+        for row in list(self.resource_rows):
+            self._fechar_configurar_recurso(row)
+            row["frame"].destroy()
+        self.resource_rows.clear()
+
+        for dado_recurso in cenario["recursos"]:
+            self._add_resource_row()
+            recurso = self.resource_rows[-1]
+            recurso["cor_picker"].set_value(dado_recurso.get("cor"))
+            recurso["vinculos"] = [
+                {
+                    "tarefa_index": vinculo.get("tarefa_index"),
+                    "t_inicial_recurso": vinculo.get("t_inicial_recurso", 0),
+                    "t_final_recurso": vinculo.get("t_final_recurso", 0),
+                }
+                for vinculo in dado_recurso.get("vinculos", [])
+            ]
 
         self._limpar_erro_specs()
         self._limpar_erro_tarefas()

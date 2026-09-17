@@ -29,6 +29,27 @@ def validar_cenario(cenario) -> bool:
             if not isinstance(tarefa.get(chave), (int, float)):
                 return False
 
+    recursos = cenario.get("recursos")
+    if not isinstance(recursos, list):
+        return False
+    for recurso in recursos:
+        if not isinstance(recurso, dict):
+            return False
+        if not isinstance(recurso.get("cor"), str):
+            return False
+        vinculos = recurso.get("vinculos")
+        if not isinstance(vinculos, list):
+            return False
+        for vinculo in vinculos:
+            if not isinstance(vinculo, dict):
+                return False
+            tarefa_index = vinculo.get("tarefa_index")
+            if tarefa_index is not None and not isinstance(tarefa_index, int):
+                return False
+            for chave in ("t_inicial_recurso", "t_final_recurso"):
+                if not isinstance(vinculo.get(chave), (int, float)):
+                    return False
+
     return True
 
 
