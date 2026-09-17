@@ -9,11 +9,12 @@ from algoritmos._montar_resultado import montar_resultado
 
 def prioc(tarefas: list[Tarefa], ctx_time: float, alpha: float | None = None) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
+    alpha = alpha or 0
 
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
     tempo_atual = tarefas_ordenadas[0].chegada
     tarefas_pendentes = copy.deepcopy(tarefas_ordenadas)
-    fila: list[Tarefa]= []
+    prioridade_original_por_id = {tarefa.id: tarefa.prioridade for tarefa in tarefas_ordenadas}
 
     def _encher_fila(tarefas_pendentes, tempo_atual, fila):
         for tarefa_iterada in tarefas_pendentes:
@@ -33,10 +34,16 @@ def prioc(tarefas: list[Tarefa], ctx_time: float, alpha: float | None = None) ->
                             break
         return fila
 
+    def _envelhecer_pendentes(tarefas_pendentes, tempo_atual):
+        for tarefa in tarefas_pendentes:
+            if tarefa.chegada <= tempo_atual:
+                tempo_espera = tempo_atual - tarefa.chegada
+                tarefa.prioridade = prioridade_original_por_id[tarefa.id] + alpha * tempo_espera
+
     while tarefas_pendentes:
-        # encher a fila com tarefas que chegaram até o tempo atual e estão fora dela
-        fila = _encher_fila(tarefas_pendentes, tempo_atual, fila)
-        
+        _envelhecer_pendentes(tarefas_pendentes, tempo_atual)
+        fila = _encher_fila(tarefas_pendentes, tempo_atual, [])
+
         if not fila:
             # se a fila estiver vazia, incrementa o tempo até a próxima tarefa chegar
             if tarefas_pendentes:
