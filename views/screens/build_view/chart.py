@@ -10,6 +10,9 @@ from views import theme
 CHART_EXECUCAO = theme.PURPLE
 CHART_TROCA_CONTEXTO = "#f7b955"
 CHART_ESPERA = theme.PURPLE_DARK  # mesma borda da execução/troca, só que vazada (sem preenchimento)
+CHART_BLOQUEIO = theme.DANGER  # hachurado -- direto e inversão usam a mesma cor, só muda a trama
+HACHURA_BLOQUEIO_DIRETO = "///"
+HACHURA_BLOQUEIO_INVERSAO = "xxx"
 
 ALTURA_BARRA = 0.55
 ALTURA_RECURSO = ALTURA_BARRA / 3  # faixa central sobre a barra, 1/3 da altura dela
@@ -124,12 +127,23 @@ class ChartMixin:
                     fill=False, edgecolor=CHART_ESPERA, linewidth=1.2, height=ALTURA_BARRA,
                 )
             for periodo in tr.periodos:
-                cor = CHART_EXECUCAO if periodo.tipo == TipoPeriodo.EXECUCAO else CHART_TROCA_CONTEXTO
-                borda = theme.PURPLE_DARK
-                self.ax.barh(
-                    tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
-                    color=cor, edgecolor=borda, linewidth=1.2, height=ALTURA_BARRA,
-                )
+                if periodo.tipo in (TipoPeriodo.BLOQUEIO_DIRETO, TipoPeriodo.BLOQUEIO_INVERSAO):
+                    hachura = (
+                        HACHURA_BLOQUEIO_INVERSAO if periodo.tipo == TipoPeriodo.BLOQUEIO_INVERSAO
+                        else HACHURA_BLOQUEIO_DIRETO
+                    )
+                    self.ax.barh(
+                        tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
+                        fill=False, hatch=hachura, edgecolor=CHART_BLOQUEIO, linewidth=1,
+                        height=ALTURA_BARRA,
+                    )
+                else:
+                    cor = CHART_EXECUCAO if periodo.tipo == TipoPeriodo.EXECUCAO else CHART_TROCA_CONTEXTO
+                    borda = theme.PURPLE_DARK
+                    self.ax.barh(
+                        tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
+                        color=cor, edgecolor=borda, linewidth=1.2, height=ALTURA_BARRA,
+                    )
                 if periodo.preemptado_por_quantum:
                     self.ax.plot(
                         [periodo.fim, periodo.fim], [tr.tarefa.id - 0.32, tr.tarefa.id + 0.32],
