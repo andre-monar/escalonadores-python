@@ -16,6 +16,7 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
     tarefas_pendentes = copy.deepcopy(tarefas_ordenadas)
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
     tp_original_por_id = {tarefa.id: tarefa.tp for tarefa in tarefas_ordenadas}
+    prioridade_original_por_id = {tarefa.id: tarefa.prioridade for tarefa in tarefas_ordenadas}
     fila: list[Tarefa]= []
     tarefa_atual = None
 
@@ -63,6 +64,13 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
                 return recurso.inicio + recurso.duracao - tempo_executado
         return None
 
+    def _reverter_prioridade_se_soltou(tarefa):
+        tempo_executado = tp_original_por_id[tarefa.id] - tarefa.tp
+        for recurso in tarefa.recursos:
+            if tempo_executado == recurso.inicio + recurso.duracao:
+                tarefa.prioridade = prioridade_original_por_id[tarefa.id]
+                return
+
     def _tp_ate_pedir_recurso(tarefa):
         tempo_executado = tp_original_por_id[tarefa.id] - tarefa.tp
         inicios_futuros = [
@@ -102,6 +110,8 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
                     None,
                 )
                 if detentora is not None:
+                    if protocolo == "Herança" and candidata.prioridade > detentora.prioridade:
+                        detentora.prioridade = candidata.prioridade
                     _bloquear_tarefa(candidata, tempo_atual)
                     bloqueada = True
                     break
@@ -174,6 +184,8 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
 
         # deduzir tempo da tarefa
         tarefa_atual.tp -= tempo_incremental
+
+        _reverter_prioridade_se_soltou(tarefa_atual)
 
         # remover tarefa se ela tiver terminado
         if tarefa_atual.tp <= 0:

@@ -58,6 +58,27 @@ class TestPRIOpComRecursos(unittest.TestCase):
         for tid, tw in tw_esperado.items():
             self.assertAlmostEqual(resultado.metricas_por_tarefa[tid].tw, tw, delta=0.05)
 
+    def test_heranca_de_prioridade(self):
+        # Cenário da Aula 6 (enunciado), 4.4 — mesmas quatro tarefas do 4.3,
+        # agora com herança habilitada (R6). Em t=3, t4 bloqueia e t1 herda
+        # a prioridade 4; t2/t3 não conseguem mais preemptar t1 até ela
+        # soltar o recurso em t=6, quando a prioridade original (1) volta.
+        # O bloqueio de t4 cai de 10 (sem protocolo) pra 3.
+        tarefas = [
+            Tarefa(id=1, chegada=0, tp=6, prioridade=1, recursos=[Recurso(id=1, inicio=1, duracao=4)]),
+            Tarefa(id=2, chegada=4, tp=4, prioridade=2),
+            Tarefa(id=3, chegada=6, tp=3, prioridade=3),
+            Tarefa(id=4, chegada=2, tp=3, prioridade=4, recursos=[Recurso(id=1, inicio=1, duracao=1)]),
+        ]
+        resultado = priop(tarefas, ctx_time=0, protocolo="Herança")
+
+        self.assertAlmostEqual(resultado.medias.tt, 9.50, delta=0.05)
+        self.assertAlmostEqual(resultado.medias.tw, 5.50, delta=0.05)
+
+        tw_esperado = {1: 10, 2: 7, 3: 2, 4: 3}
+        for tid, tw in tw_esperado.items():
+            self.assertAlmostEqual(resultado.metricas_por_tarefa[tid].tw, tw, delta=0.05)
+
 
 if __name__ == "__main__":
     unittest.main()
