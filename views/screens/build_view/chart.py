@@ -125,7 +125,7 @@ class ChartMixin:
             metricas = resultado.metricas_por_tarefa[tr.tarefa.id]
             self.ax.text(
                 tempo_max + tempo_max * 0.02, tr.tarefa.id,
-                f"tt={metricas.tt:.1f}  tw={metricas.tw:.1f}",
+                f"Prioridade={tr.tarefa.prioridade}\ntt={metricas.tt:.1f} s  tw={metricas.tw:.1f} s",
                 va="center", color=theme.TEXT_MUTED, fontsize=8,
             )
 
