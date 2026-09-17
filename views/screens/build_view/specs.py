@@ -4,6 +4,7 @@ from views import theme
 from views.components.dropdown import Dropdown
 from views.components.placeholder_numeric_entry import PlaceholderNumericEntry
 from views.screens.build_view.constants import (
+    ALGO_PRIOC,
     ALGO_PRIOP,
     ALGO_ROUND_ROBIN,
     CORRECTION_DEFAULT,
@@ -41,6 +42,9 @@ class SpecsMixin:
             specs, CORRECTION_OPTIONS, initial=CORRECTION_DEFAULT,
             width=150, height=40,
         )
+
+        self.alpha_label = self._spec_label(specs, "Fator de envelhecimento (α)")
+        self.alpha_entry = PlaceholderNumericEntry(specs, placeholder=0, width=8)
 
         self._update_specs_visibility()
 
@@ -94,3 +98,10 @@ class SpecsMixin:
         else:
             self.correction_label.grid_remove()
             self.correction_dropdown.grid_remove()
+
+        if algoritmo == ALGO_PRIOC:
+            self.alpha_label.grid(row=3, column=0, sticky="w", pady=8)
+            self.alpha_entry.grid(row=3, column=1, sticky="e", pady=8, ipady=6)
+        else:
+            self.alpha_label.grid_remove()
+            self.alpha_entry.grid_remove()

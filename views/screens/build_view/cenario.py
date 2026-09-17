@@ -14,6 +14,7 @@ class CenarioMixin:
             "ctx_time": self.ctx_entry.get_value(),
             "quantum": self.quantum_entry.get_value(),
             "protocolo_correcao": self.correction_dropdown.get(),
+            "alpha": self.alpha_entry.get_value(),
             "tarefas": [
                 {
                     "chegada": row["entries"][0].get_value(),
@@ -69,6 +70,7 @@ class CenarioMixin:
         self.ctx_entry.set_value(cenario["ctx_time"])
         self.quantum_entry.set_value(cenario["quantum"])
         self.correction_dropdown.set_value(cenario["protocolo_correcao"])
+        self.alpha_entry.set_value(cenario["alpha"])
 
         for row in list(self.task_rows):
             row["frame"].destroy()

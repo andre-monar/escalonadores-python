@@ -136,11 +136,14 @@ class BuildView(RecursosMixin, TarefasMixin, SpecsMixin, ChartMixin, CenarioMixi
             selecionado = self.correction_dropdown.get()
             protocolo = None if selecionado == "Nenhum" else selecionado
 
+        alpha = self.alpha_entry.get_value() if algoritmo == ALGO_PRIOC else None
+
         return Parametros(
             algoritmo=algoritmo,
             ctx_time=self.ctx_entry.get_value(),
             quantum=quantum,
             protocolo=protocolo,
+            alpha=alpha,
         )
 
     def _on_generate_click(self):
@@ -164,7 +167,7 @@ class BuildView(RecursosMixin, TarefasMixin, SpecsMixin, ChartMixin, CenarioMixi
             elif parametros.algoritmo == ALGO_SRTF:
                 resultado = srtf(tarefas, ctx_time=parametros.ctx_time)
             elif parametros.algoritmo == ALGO_PRIOC:
-                resultado = prioc(tarefas, ctx_time=parametros.ctx_time)
+                resultado = prioc(tarefas, ctx_time=parametros.ctx_time, alpha=parametros.alpha)
             elif parametros.algoritmo == ALGO_PRIOP:
                 resultado = priop(tarefas, ctx_time=parametros.ctx_time, protocolo=parametros.protocolo)
             else:

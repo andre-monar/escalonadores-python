@@ -18,6 +18,8 @@ def validar_cenario(cenario) -> bool:
         return False
     if not isinstance(cenario.get("quantum"), (int, float)):
         return False
+    if not isinstance(cenario.get("alpha"), (int, float)):
+        return False
 
     tarefas = cenario.get("tarefas")
     if not isinstance(tarefas, list):

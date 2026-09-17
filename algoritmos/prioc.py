@@ -7,7 +7,7 @@ from models.tarefa import Tarefa
 from algoritmos._montar_resultado import montar_resultado
 
 
-def prioc(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
+def prioc(tarefas: list[Tarefa], ctx_time: float, alpha: float | None = None) -> ResultadoSimulacao:
     periodos_por_tarefa: dict[int, list[Periodo]] = {tarefa.id: [] for tarefa in tarefas}
 
     tarefas_ordenadas = sorted(tarefas, key=lambda t: (t.chegada, t.id))
@@ -65,5 +65,5 @@ def prioc(tarefas: list[Tarefa], ctx_time: float) -> ResultadoSimulacao:
 
     return montar_resultado(
         tarefas, periodos_por_tarefa,
-        algoritmo="PRIOc", ctx_time=ctx_time,
+        algoritmo="PRIOc", ctx_time=ctx_time, alpha=alpha,
     )
