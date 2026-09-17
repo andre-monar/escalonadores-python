@@ -17,6 +17,12 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
     ids_nao_finalizados = {tarefa.id for tarefa in tarefas_ordenadas}
     tp_original_por_id = {tarefa.id: tarefa.tp for tarefa in tarefas_ordenadas}
     prioridade_original_por_id = {tarefa.id: tarefa.prioridade for tarefa in tarefas_ordenadas}
+    teto_por_recurso: dict[int, int] = {}
+    for tarefa in tarefas_ordenadas:
+        for recurso in tarefa.recursos:
+            teto_por_recurso[recurso.id] = max(
+                teto_por_recurso.get(recurso.id, tarefa.prioridade), tarefa.prioridade,
+            )
     fila: list[Tarefa]= []
     tarefa_atual = None
 
@@ -102,8 +108,9 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
 
     def _proxima_tarefa_valida(fila, tarefas_pendentes, tempo_atual):
         for candidata in fila:
+            recursos_solicitados = _busca_recursos_solicitados_pela_tarefa(candidata)
             bloqueada = False
-            for recurso in _busca_recursos_solicitados_pela_tarefa(candidata):
+            for recurso in recursos_solicitados:
                 detentora = next(
                     (outra for outra in tarefas_pendentes
                      if outra is not candidata and _recurso_esta_sendo_usado(outra, recurso.id)),
@@ -117,6 +124,9 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
                     break
             if not bloqueada:
                 _desbloquear_tarefa_se_bloqueada(candidata, tempo_atual)
+                if protocolo == "Teto":
+                    for recurso in recursos_solicitados:
+                        candidata.prioridade = max(candidata.prioridade, teto_por_recurso[recurso.id])
                 return candidata
         return None
 
