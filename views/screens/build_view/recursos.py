@@ -133,6 +133,18 @@ class RecursosMixin:
             self._fechar_configurar_recurso(recurso)
             return
 
+        # snapshot só dos dados (não dos widgets) — pra "Cancelar" poder
+        # voltar exatamente pro estado de antes de abrir, mesmo que a sessão
+        # tenha adicionado/removido vínculo ou trocado a tarefa vinculada.
+        recurso["_snapshot_vinculos"] = [
+            {
+                "tarefa_index": v["tarefa_index"],
+                "t_inicial_recurso": v["t_inicial_recurso"],
+                "t_final_recurso": v["t_final_recurso"],
+            }
+            for v in recurso["vinculos"]
+        ]
+
         if not recurso["vinculos"]:
             recurso["vinculos"].append({"tarefa_index": None, "t_inicial_recurso": 0, "t_final_recurso": 0})
 
@@ -166,26 +178,38 @@ class RecursosMixin:
         for vinculo in recurso["vinculos"]:
             self._renderizar_vinculo_row(popup_state, vinculo)
 
-        rodape = tk.Frame(inner, bg=theme.CARD_BG)
-        rodape.pack(padx=10, pady=10)
+        linha_adicionar = tk.Frame(inner, bg=theme.CARD_BG)
+        linha_adicionar.pack(fill="x", padx=10, pady=(10, 0))
 
         RoundedButton(
-            rodape, "+  Adicionar vínculo",
+            linha_adicionar, "+  Adicionar vínculo",
             command=lambda: self._adicionar_vinculo(popup_state),
-            width=200, height=34, radius=8,
+            width=300, height=34, radius=8,
             bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
             fg=theme.TEXT, outline=theme.BORDER,
             font=(theme.FONT_FAMILY, 10, "bold"),
-        ).pack(side="left")
+        ).pack(fill="x")
+
+        linha_acoes = tk.Frame(inner, bg=theme.CARD_BG)
+        linha_acoes.pack(fill="x", padx=10, pady=10)
 
         RoundedButton(
-            rodape, "Fechar",
-            command=lambda: self._fechar_configurar_recurso(recurso),
-            width=90, height=34, radius=8,
+            linha_acoes, "Cancelar",
+            command=lambda: self._cancelar_configurar_recurso(recurso),
+            width=140, height=34, radius=8,
             bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
             fg=theme.TEXT, outline=theme.BORDER,
             font=(theme.FONT_FAMILY, 10, "bold"),
-        ).pack(side="left", padx=(8, 0))
+        ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        RoundedButton(
+            linha_acoes, "Salvar",
+            command=lambda: self._salvar_configurar_recurso(recurso),
+            width=140, height=34, radius=8,
+            bg=theme.PURPLE, hover=theme.PURPLE_HOVER,
+            fg=theme.TEXT,
+            font=(theme.FONT_FAMILY, 10, "bold"),
+        ).pack(side="left", fill="x", expand=True, padx=(4, 0))
 
         popup.update_idletasks()
         popup.geometry(f"+{x}+{y}")
@@ -196,7 +220,7 @@ class RecursosMixin:
             "<Button-1>", lambda e: self._on_configurar_popup_click(e, recurso), add="+",
         )
         recurso["popup_unmap_binding"] = root.bind(
-            "<Unmap>", lambda _e: self._fechar_configurar_recurso(recurso), add="+",
+            "<Unmap>", lambda _e: self._salvar_configurar_recurso(recurso), add="+",
         )
 
     def _on_configurar_popup_click(self, event, recurso):
@@ -209,9 +233,28 @@ class RecursosMixin:
             if node in (popup, recurso["configurar_btn"]):
                 return
             node = getattr(node, "master", None)
+        self._salvar_configurar_recurso(recurso)
+
+    def _salvar_configurar_recurso(self, recurso):
+        """Comita explicitamente o valor atual dos campos de cada vínculo —
+        não dá pra confiar só no <FocusOut> (RoundedButton é um Canvas, não
+        tira o foco do campo ao ser clicado, então fechar direto sem clicar
+        em outro lugar antes nunca disparava o commit)."""
+        for vinculo in recurso["vinculos"]:
+            if vinculo["tarefa_index"] is not None:
+                self._validar_vinculo_tempo(vinculo, "fim")
+        self._fechar_configurar_recurso(recurso)
+
+    def _cancelar_configurar_recurso(self, recurso):
+        """Descarta tudo que mudou desde que o popup foi aberto — edições,
+        vínculos adicionados/removidos, tarefa vinculada trocada."""
+        snapshot = recurso.get("_snapshot_vinculos")
+        if snapshot is not None:
+            recurso["vinculos"] = [dict(v) for v in snapshot]
         self._fechar_configurar_recurso(recurso)
 
     def _fechar_configurar_recurso(self, recurso):
+        recurso.pop("_snapshot_vinculos", None)
         if recurso["popup"] is not None:
             recurso["popup"].destroy()
             recurso["popup"] = None
