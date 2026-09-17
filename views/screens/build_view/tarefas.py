@@ -21,7 +21,7 @@ class TarefasMixin:
         self._tarefas_titulo.pack(anchor="w", padx=SIDEBAR_PAD, pady=(0, 10))
 
         RoundedButton(
-            sidebar, "Abrir cenário",
+            sidebar, "Carregar cenário",
             command=self._on_open_scenario_click,
             width=content_width, height=48, radius=10,
             bg=theme.SURFACE, hover=theme.SURFACE_HOVER,
