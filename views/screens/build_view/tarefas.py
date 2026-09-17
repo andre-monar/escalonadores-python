@@ -12,6 +12,20 @@ COLUMN_LABELS = ["ID", "Chegada", "", "Duração", "", "Prioridade", "", ""]
 # (col_entry, col_unidade, unidade, placeholder/mínimo)
 TASK_FIELDS = [(1, 2, "s", 0), (3, 4, "s", 0), (5, 6, "", 1)]
 
+NUM_TAREFAS_SORTEIO = 5
+
+
+def gerar_tarefas_aleatorias() -> list[Tarefa]:
+    tarefas = []
+    for indice in range(1, NUM_TAREFAS_SORTEIO + 1):
+        tarefas.append(Tarefa(
+            id=indice,
+            chegada=0 if indice == 1 else random.randint(0, 9),
+            tp=random.randint(0, 9),
+            prioridade=random.randint(1, 5),
+        ))
+    return tarefas
+
 
 class TarefasMixin:
     def _build_tasks_section(self, sidebar, content_width):
@@ -75,12 +89,12 @@ class TarefasMixin:
             row["frame"].destroy()
         self.task_rows.clear()
 
-        for indice in range(5):
+        for tarefa in gerar_tarefas_aleatorias():
             self._add_task_row()
             chegada_entry, duracao_entry, prioridade_entry = self.task_rows[-1]["entries"]
-            chegada_entry.set_value(0 if indice == 0 else random.randint(0, 9))
-            duracao_entry.set_value(random.randint(0, 9))
-            prioridade_entry.set_value(random.randint(1, 5))
+            chegada_entry.set_value(tarefa.chegada)
+            duracao_entry.set_value(tarefa.tp)
+            prioridade_entry.set_value(tarefa.prioridade)
 
         self._limpar_erro_tarefas()
 

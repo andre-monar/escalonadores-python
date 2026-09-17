@@ -2,6 +2,7 @@ import tkinter as tk
 
 from views import theme
 from views.cenario_io import abrir_cenario_de_arquivo
+from views.components.batch_table import mostrar_popup_lote
 from views.components.rounded_button import RoundedButton
 
 
@@ -45,14 +46,21 @@ class HomeView(tk.Frame):
             actions, "Criar novo cenário",
             command=lambda: self.controller.show_frame("BuildView"),
             width=230, height=52, bg=theme.PURPLE, hover=theme.PURPLE_HOVER,
-        ).pack(side="left", padx=12)
+        ).pack(pady=6)
 
         RoundedButton(
             actions, "Abrir cenário...",
             command=self._on_open_scenario_click,
-            width=200, height=52, bg=theme.BG, hover=theme.CARD_BG,
+            width=230, height=52, bg=theme.BG, hover=theme.CARD_BG,
             fg=theme.TEXT, outline=theme.BORDER,
-        ).pack(side="left", padx=12)
+        ).pack(pady=6)
+
+        RoundedButton(
+            actions, "Rodar lote",
+            command=lambda: mostrar_popup_lote(self),
+            width=230, height=52, bg=theme.BG, hover=theme.CARD_BG,
+            fg=theme.TEXT, outline=theme.BORDER,
+        ).pack(pady=6)
 
         self.error_label = tk.Label(
             self, text="", bg=theme.BG, fg=theme.DANGER, font=(theme.FONT_FAMILY, 10),
