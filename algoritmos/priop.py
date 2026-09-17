@@ -48,7 +48,7 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
     def _recurso_esta_sendo_usado(tarefa, recurso_id):
         tempo_executado = tp_original_por_id[tarefa.id] - tarefa.tp
         for recurso in tarefa.recursos:
-            if recurso.id == recurso_id and recurso.inicio <= tempo_executado < recurso.inicio + recurso.duracao:
+            if recurso.id == recurso_id and recurso.inicio < tempo_executado < recurso.inicio + recurso.duracao:
                 return True
         return False
 
