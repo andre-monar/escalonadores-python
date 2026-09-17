@@ -71,13 +71,17 @@ class RecursosMixin:
         row.pack(fill="x", pady=5)
         self._configure_resource_row_columns(row)
 
+        novo_id = len(self.resource_rows) + 1
         id_label = tk.Label(
-            row, text=str(len(self.resource_rows) + 1), bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
+            row, text=str(novo_id), bg=theme.SIDEBAR_BG, fg=theme.TEXT_MUTED,
             font=(theme.FONT_FAMILY, 10), anchor="w",
         )
         id_label.grid(row=0, column=0, sticky="ew", padx=4)
 
-        cor_picker = ColorPickerButton(row, RESOURCE_COLORS, size=28)
+        # cor inicial roda pela paleta a cada recurso novo (id 1 -> 1ª cor,
+        # id 2 -> 2ª cor, ...), voltando pra primeira depois de esgotar todas
+        cor_inicial = RESOURCE_COLORS[(novo_id - 1) % len(RESOURCE_COLORS)]
+        cor_picker = ColorPickerButton(row, RESOURCE_COLORS, initial=cor_inicial, size=28)
         cor_picker.grid(row=0, column=1, sticky="w", padx=4)
 
         entry_data = {
