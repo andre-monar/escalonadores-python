@@ -1,3 +1,4 @@
+from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from models.periodo import TipoPeriodo
@@ -39,6 +40,8 @@ def construir_legenda(ax, fig, tarefas_resultado, cores_recursos, ancora_y):
         handles.append(Patch(
             facecolor="none", edgecolor=CHART_BLOQUEIO, hatch=HACHURA_BLOQUEIO_INVERSAO, label="Bloqueio (inversão)",
         ))
+    if any(tr.preempcoes for tr in tarefas_resultado):
+        handles.append(Line2D([0], [0], color=theme.TEXT, linestyle="--", linewidth=1.2, label="Preemptado"))
 
     recursos_usados = sorted({
         recurso.id for tr in tarefas_resultado for recurso, _, _ in tr.recursos_em_uso

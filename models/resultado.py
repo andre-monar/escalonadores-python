@@ -10,6 +10,7 @@ class TarefaResultado:
     periodos: list[Periodo] = field(default_factory=list)
     esperas: list[tuple[float, float]] = field(default_factory=list)
     recursos_em_uso: list[tuple[Recurso, float, float]] = field(default_factory=list)
+    preempcoes: list[float] = field(default_factory=list)
 
 
 @dataclass

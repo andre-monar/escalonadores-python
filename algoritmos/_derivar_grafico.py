@@ -19,6 +19,25 @@ def calcular_esperas(tr: TarefaResultado) -> list[tuple[float, float]]:
     return esperas
 
 
+def calcular_preempcoes(tr: TarefaResultado) -> list[float]:
+    """Instantes em que uma execução termina E algo de fato tomou o lugar
+    dela antes da próxima (outra tarefa rodou, ou ela mesma ficou bloqueada
+    esperando um recurso) — não basta ter mais um período EXECUCAO à frente:
+    alguns algoritmos (PRIOp, por reavaliar a cada chegada) reavaliam e
+    fecham/abrem um novo Periodo pra MESMA tarefa mesmo quando ninguém a
+    tirou da CPU, e isso não deve contar como preempção. O critério é o
+    período seguinte não começar exatamente onde esse terminou."""
+    periodos_execucao = sorted(
+        (p for p in tr.periodos if p.tipo == TipoPeriodo.EXECUCAO),
+        key=lambda p: p.inicio,
+    )
+    return [
+        atual.fim
+        for atual, proximo in zip(periodos_execucao, periodos_execucao[1:])
+        if atual.fim < proximo.inicio
+    ]
+
+
 def _tempo_absoluto_em(periodos_execucao, alvo_tempo_proprio):
     """Acha o instante absoluto em que a tarefa alcança `alvo_tempo_proprio`
     de execução própria — caminhando pelos períodos de EXECUCAO em ordem (é

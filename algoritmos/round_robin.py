@@ -64,7 +64,6 @@ def round_robin(tarefas: list[Tarefa], ctx_time: float, quantum: int) -> Resulta
             inicio=tempo_atual,
             fim=tempo_atual + min(quantum_pendente, tarefa_atual.tp),
             tipo=TipoPeriodo.EXECUCAO,
-            preemptado_por_quantum=quantum_pendente < tarefa_atual.tp,
         ))
 
         # incrementa o tempo

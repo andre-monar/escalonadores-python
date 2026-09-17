@@ -114,11 +114,11 @@ class ChartMixin:
                         tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
                         color=cor, edgecolor=borda, linewidth=1.2, height=ALTURA_BARRA,
                     )
-                if periodo.preemptado_por_quantum:
-                    self.ax.plot(
-                        [periodo.fim, periodo.fim], [tr.tarefa.id - 0.32, tr.tarefa.id + 0.32],
-                        linestyle="--", color=theme.TEXT, linewidth=1.2,
-                    )
+            for instante in tr.preempcoes:
+                self.ax.plot(
+                    [instante, instante], [tr.tarefa.id - 0.32, tr.tarefa.id + 0.32],
+                    linestyle="--", color=theme.TEXT, linewidth=1.2,
+                )
             for recurso, inicio, fim in tr.recursos_em_uso:
                 cor_recurso = (cores_recursos or {}).get(recurso.id, theme.TEXT)
                 self._desenhar_faixa_recurso(tr.tarefa.id, inicio, fim, cor_recurso)
