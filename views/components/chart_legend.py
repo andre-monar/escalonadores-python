@@ -7,9 +7,8 @@ from views import theme
 CHART_EXECUCAO = theme.PURPLE
 CHART_TROCA_CONTEXTO = "#f7b955"
 CHART_ESPERA = theme.PURPLE_DARK  # mesma borda da execução/troca, só que vazada (sem preenchimento)
-CHART_BLOQUEIO = theme.DANGER  # hachurado -- direto e inversão usam a mesma cor, só muda a trama
+CHART_BLOQUEIO = theme.DANGER  # hachurado
 HACHURA_BLOQUEIO_DIRETO = "///"
-HACHURA_BLOQUEIO_INVERSAO = "xxx"
 
 
 def construir_legenda(ax, fig, tarefas_resultado, cores_recursos, ancora_y):
@@ -34,11 +33,7 @@ def construir_legenda(ax, fig, tarefas_resultado, cores_recursos, ancora_y):
         handles.append(Patch(facecolor="none", edgecolor=CHART_ESPERA, linewidth=1.2, label="Espera"))
     if TipoPeriodo.BLOQUEIO_DIRETO in tipos_presentes:
         handles.append(Patch(
-            facecolor="none", edgecolor=CHART_BLOQUEIO, hatch=HACHURA_BLOQUEIO_DIRETO, label="Bloqueio direto",
-        ))
-    if TipoPeriodo.BLOQUEIO_INVERSAO in tipos_presentes:
-        handles.append(Patch(
-            facecolor="none", edgecolor=CHART_BLOQUEIO, hatch=HACHURA_BLOQUEIO_INVERSAO, label="Bloqueio (inversão)",
+            facecolor="none", edgecolor=CHART_BLOQUEIO, hatch=HACHURA_BLOQUEIO_DIRETO, label="Bloqueio",
         ))
     if any(tr.preempcoes for tr in tarefas_resultado):
         handles.append(Line2D([0], [0], color=theme.TEXT, linestyle="--", linewidth=1.2, label="Preemptado"))

@@ -5,7 +5,6 @@ SIMBOLOS = {
     TipoPeriodo.EXECUCAO: "#",
     TipoPeriodo.TROCA_CONTEXTO: "x",
     TipoPeriodo.BLOQUEIO_DIRETO: "b",
-    TipoPeriodo.BLOQUEIO_INVERSAO: "B",
 }
 
 
@@ -22,7 +21,7 @@ def imprimir_resultado(resultado: ResultadoSimulacao) -> None:
             tempo_max = max(tempo_max, int(periodo.fim))
 
     print("\nLegenda: '#' execução  'x' troca de contexto  'b' bloqueio direto  "
-          "'B' bloqueio por inversão  '.' esperando  ' ' ainda não chegou")
+          "'.' esperando  ' ' ainda não chegou")
 
     print("\n     " + "".join(str(t % 10) for t in range(tempo_max)))
     for tid in sorted(resultado.tarefas):

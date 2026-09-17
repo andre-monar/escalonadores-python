@@ -2,7 +2,7 @@ from models.periodo import TipoPeriodo
 from models.resultado import TarefaResultado
 from models.tarefa import Recurso
 
-BLOQUEIOS = (TipoPeriodo.BLOQUEIO_DIRETO, TipoPeriodo.BLOQUEIO_INVERSAO)
+BLOQUEIOS = (TipoPeriodo.BLOQUEIO_DIRETO,)
 
 
 def calcular_esperas(tr: TarefaResultado) -> list[tuple[float, float]]:

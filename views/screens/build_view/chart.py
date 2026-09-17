@@ -12,7 +12,6 @@ from views.components.chart_legend import (
     CHART_EXECUCAO,
     CHART_TROCA_CONTEXTO,
     HACHURA_BLOQUEIO_DIRETO,
-    HACHURA_BLOQUEIO_INVERSAO,
     construir_legenda,
 )
 from views.components.chart_summary_table import construir_tabela_resumo
@@ -22,6 +21,30 @@ ALTURA_RECURSO = ALTURA_BARRA / 3  # faixa central sobre a barra, 1/3 da altura 
 
 GAP_LEGENDA = 0.015  # respiro entre o eixo X e o topo da legenda
 FOLGA_INFERIOR = 0.005  # respiro entre o fundo da legenda e a borda da figura
+
+
+def _dividir_por_execucao(periodos, inicio, fim):
+    """Recorta [inicio, fim) — um intervalo de posse de recurso, já calculado
+    por `calcular_recursos_em_uso` — nos trechos em que a tarefa está de fato
+    em EXECUCAO e no que sobra (ela já cruzou o próprio limiar do recurso,
+    mas está parada: espera, troca de contexto ou bloqueio). Regra simples,
+    por tarefa — não confere se outra tarefa também reivindica o mesmo
+    recurso nesse meio-tempo."""
+    execucoes = sorted(
+        (max(p.inicio, inicio), min(p.fim, fim))
+        for p in periodos
+        if p.tipo == TipoPeriodo.EXECUCAO and p.inicio < fim and p.fim > inicio
+    )
+    segmentos = []
+    posicao = inicio
+    for inicio_exec, fim_exec in execucoes:
+        if inicio_exec > posicao:
+            segmentos.append((posicao, inicio_exec, False))
+        segmentos.append((inicio_exec, fim_exec, True))
+        posicao = fim_exec
+    if posicao < fim:
+        segmentos.append((posicao, fim, False))
+    return segmentos
 
 
 class ChartMixin:
@@ -65,9 +88,11 @@ class ChartMixin:
 
     def _desenhar_faixa_recurso(self, tarefa_id, inicio, fim, cor, pausado=False):
         """Faixa central sobre a barra da tarefa marcando a posse de um
-        recurso — sólida enquanto em uso, hachurada quando pausada (esse
-        segundo caso ainda não é produzido por nenhum algoritmo, só o
-        desenho já fica pronto pra quando existir)."""
+        recurso — sólida enquanto a tarefa está de fato em EXECUCAO,
+        hachurada (vazada) nos trechos em que ela já cruzou o próprio
+        limiar do recurso mas está parada (espera, troca de contexto ou
+        bloqueio) — desenhada depois das barras de bloqueio, por isso
+        sobrepõe a hachura delas."""
         if pausado:
             self.ax.barh(
                 tarefa_id, fim - inicio, left=inicio, height=ALTURA_RECURSO,
@@ -97,14 +122,10 @@ class ChartMixin:
                     fill=False, edgecolor=CHART_ESPERA, linewidth=1.2, height=ALTURA_BARRA,
                 )
             for periodo in tr.periodos:
-                if periodo.tipo in (TipoPeriodo.BLOQUEIO_DIRETO, TipoPeriodo.BLOQUEIO_INVERSAO):
-                    hachura = (
-                        HACHURA_BLOQUEIO_INVERSAO if periodo.tipo == TipoPeriodo.BLOQUEIO_INVERSAO
-                        else HACHURA_BLOQUEIO_DIRETO
-                    )
+                if periodo.tipo == TipoPeriodo.BLOQUEIO_DIRETO:
                     self.ax.barh(
                         tr.tarefa.id, periodo.fim - periodo.inicio, left=periodo.inicio,
-                        fill=False, hatch=hachura, edgecolor=CHART_BLOQUEIO, linewidth=1,
+                        fill=False, hatch=HACHURA_BLOQUEIO_DIRETO, edgecolor=CHART_BLOQUEIO, linewidth=1,
                         height=ALTURA_BARRA,
                     )
                 else:
@@ -121,7 +142,10 @@ class ChartMixin:
                 )
             for recurso, inicio, fim in tr.recursos_em_uso:
                 cor_recurso = (cores_recursos or {}).get(recurso.id, theme.TEXT)
-                self._desenhar_faixa_recurso(tr.tarefa.id, inicio, fim, cor_recurso)
+                for sub_inicio, sub_fim, executando in _dividir_por_execucao(tr.periodos, inicio, fim):
+                    self._desenhar_faixa_recurso(
+                        tr.tarefa.id, sub_inicio, sub_fim, cor_recurso, pausado=not executando,
+                    )
             metricas = resultado.metricas_por_tarefa[tr.tarefa.id]
             self.ax.text(
                 tempo_max + tempo_max * 0.02, tr.tarefa.id,

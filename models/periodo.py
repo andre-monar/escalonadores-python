@@ -6,7 +6,6 @@ class TipoPeriodo(str, Enum):
     EXECUCAO = "execucao"
     TROCA_CONTEXTO = "troca_contexto"
     BLOQUEIO_DIRETO = "bloqueio_direto"
-    BLOQUEIO_INVERSAO = "bloqueio_inversao"
 
 
 @dataclass
