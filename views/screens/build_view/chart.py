@@ -6,16 +6,22 @@ from matplotlib.figure import Figure
 from models.periodo import TipoPeriodo
 from models.resultado import ResultadoSimulacao
 from views import theme
-
-CHART_EXECUCAO = theme.PURPLE
-CHART_TROCA_CONTEXTO = "#f7b955"
-CHART_ESPERA = theme.PURPLE_DARK  # mesma borda da execução/troca, só que vazada (sem preenchimento)
-CHART_BLOQUEIO = theme.DANGER  # hachurado -- direto e inversão usam a mesma cor, só muda a trama
-HACHURA_BLOQUEIO_DIRETO = "///"
-HACHURA_BLOQUEIO_INVERSAO = "xxx"
+from views.components.chart_legend import (
+    CHART_BLOQUEIO,
+    CHART_ESPERA,
+    CHART_EXECUCAO,
+    CHART_TROCA_CONTEXTO,
+    HACHURA_BLOQUEIO_DIRETO,
+    HACHURA_BLOQUEIO_INVERSAO,
+    construir_legenda,
+)
+from views.components.chart_summary_table import construir_tabela_resumo
 
 ALTURA_BARRA = 0.55
 ALTURA_RECURSO = ALTURA_BARRA / 3  # faixa central sobre a barra, 1/3 da altura dela
+
+GAP_LEGENDA = 0.015  # respiro entre o eixo X e o topo da legenda
+FOLGA_INFERIOR = 0.005  # respiro entre o fundo da legenda e a borda da figura
 
 
 class ChartMixin:
@@ -74,6 +80,10 @@ class ChartMixin:
             )
 
     def _desenhar_resultado(self, resultado: ResultadoSimulacao, cores_recursos: dict | None = None):
+        if getattr(self, "_tabela_resumo_ax", None) is not None:
+            self._tabela_resumo_ax.remove()
+            self._tabela_resumo_ax = None
+
         self.ax.clear()
         self._style_axes()
 
@@ -128,12 +138,47 @@ class ChartMixin:
         self.ax.set_yticklabels([f"T{tr.tarefa.id}" for tr in tarefas_resultado], color=theme.TEXT)
         self.ax.set_xlim(0, tempo_max * 1.3)
         self.ax.set_xlabel("Tempo")
-        self.ax.set_title(
-            f"{resultado.parametros.algoritmo}   —   "
-            f"Tt médio={resultado.medias.tt:.2f}  Tw médio={resultado.medias.tw:.2f}  "
-            f"1ª exec. média={resultado.medias.t1a_exec:.2f}  trocas={n_trocas}",
-            fontsize=10, color=theme.TEXT,
-        )
 
+        self._ajustar_layout(tarefas_resultado, cores_recursos, resultado, n_trocas)
+        self.chart_canvas.draw()
+
+    def _ajustar_layout(self, tarefas_resultado, cores_recursos, resultado, n_trocas):
+        """Reserva embaixo só o espaço que o mais alto dos dois — legenda
+        (direita) ou tabela de resumo (esquerda) — realmente precisa. O
+        tight_layout nunca encolhe o eixo além do que ele mesmo já reserva
+        pros próprios rótulos — pedir uma margem via `rect` menor que isso
+        não tem efeito nenhum, só sobra espaço vazio. Por isso o
+        posicionamento final é direto (`ax.set_position`), calculado a
+        partir da altura real de cada um já desenhado (não do retângulo do
+        gráfico — os rótulos do eixo ficam DENTRO dessa faixa reservada
+        pelo tight_layout, não logo abaixo dela)."""
         self.fig.tight_layout()
         self.chart_canvas.draw()
+        pos = self.ax.get_position()
+
+        # onde o texto do eixo X (tick labels + "Tempo") realmente termina,
+        # não só onde o retângulo do gráfico termina
+        eixo_x_bbox = self.ax.xaxis.get_tightbbox(self.chart_canvas.get_renderer())
+        eixo_x_bbox_fig = eixo_x_bbox.transformed(self.fig.transFigure.inverted())
+        zona_eixo = pos.y0 - eixo_x_bbox_fig.y0
+
+        ancora_y = eixo_x_bbox_fig.y0 - GAP_LEGENDA
+        legenda = construir_legenda(self.ax, self.fig, tarefas_resultado, cores_recursos, ancora_y)
+        tabela_ax, altura_tabela = construir_tabela_resumo(self.fig, resultado, n_trocas, ancora_y)
+        self.chart_canvas.draw()
+
+        bbox_fig = legenda.get_window_extent(self.chart_canvas.get_renderer()).transformed(
+            self.fig.transFigure.inverted()
+        )
+        altura_legenda = ancora_y - bbox_fig.y0
+        altura_final = max(altura_legenda, altura_tabela)
+
+        topo = pos.y0 + pos.height  # preserva o topo (título etc.) como o tight_layout decidiu
+        y0_novo = zona_eixo + GAP_LEGENDA + altura_final + FOLGA_INFERIOR
+        self.ax.set_position([pos.x0, y0_novo, pos.width, topo - y0_novo])
+
+        legenda.remove()
+        tabela_ax.remove()
+        ancora_y = y0_novo - zona_eixo - GAP_LEGENDA
+        construir_legenda(self.ax, self.fig, tarefas_resultado, cores_recursos, ancora_y)
+        self._tabela_resumo_ax, _ = construir_tabela_resumo(self.fig, resultado, n_trocas, ancora_y)
