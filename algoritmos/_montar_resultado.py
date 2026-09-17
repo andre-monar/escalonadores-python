@@ -1,3 +1,4 @@
+from algoritmos._derivar_grafico import calcular_esperas, calcular_recursos_em_uso
 from models.periodo import TipoPeriodo, Periodo
 from models.resultado import Medias, MetricasTarefa, Parametros, ResultadoSimulacao, TarefaResultado
 from models.tarefa import Tarefa
@@ -34,7 +35,10 @@ def montar_resultado(
         inicios_execucao = [p.inicio for p in periodos if p.tipo == TipoPeriodo.EXECUCAO]
         t1a_exec = min(inicios_execucao) - tarefa.chegada
 
-        tarefas_resultado[tarefa.id] = TarefaResultado(tarefa=tarefa, periodos=periodos)
+        tr = TarefaResultado(tarefa=tarefa, periodos=periodos)
+        tr.esperas = calcular_esperas(tr)
+        tr.recursos_em_uso = calcular_recursos_em_uso(tr)
+        tarefas_resultado[tarefa.id] = tr
         metricas_por_tarefa[tarefa.id] = MetricasTarefa(tt=tt, tw=tw, t1a_exec=t1a_exec)
 
     n = len(tarefas)

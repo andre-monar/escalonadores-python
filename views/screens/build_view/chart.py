@@ -57,46 +57,6 @@ class ChartMixin:
         self.fig.tight_layout()
         self.chart_canvas.draw()
 
-    @staticmethod
-    def _calcular_esperas(tr):
-        """Espera nunca é um Periodo de verdade (nenhum algoritmo registra) — é
-        derivada aqui: os buracos entre a chegada e o que os períodos já cobrem.
-        Não conta o tempo depois do último período (aí a tarefa já terminou)."""
-        periodos_ordenados = sorted(tr.periodos, key=lambda p: p.inicio)
-        esperas = []
-        posicao = tr.tarefa.chegada
-        for periodo in periodos_ordenados:
-            if periodo.inicio > posicao:
-                esperas.append((posicao, periodo.inicio))
-            posicao = max(posicao, periodo.fim)
-        return esperas
-
-    @staticmethod
-    def _recursos_em_tempo_absoluto(tr):
-        """Traduz a janela [inicio, inicio+duracao) de cada Recurso da tarefa
-        (medida no tempo de execução própria dela, C7) pra intervalo(s) de
-        tempo absoluto do gráfico. Pode virar mais de um segmento se a posse
-        do recurso atravessar uma troca de contexto no meio (executado só
-        avança durante EXECUCAO)."""
-        periodos_execucao = sorted(
-            (p for p in tr.periodos if p.tipo == TipoPeriodo.EXECUCAO),
-            key=lambda p: p.inicio,
-        )
-        segmentos = []
-        for recurso in tr.tarefa.recursos:
-            recurso_fim = recurso.inicio + recurso.duracao
-            executado = 0
-            for periodo in periodos_execucao:
-                duracao_periodo = periodo.fim - periodo.inicio
-                overlap_inicio = max(recurso.inicio, executado)
-                overlap_fim = min(recurso_fim, executado + duracao_periodo)
-                if overlap_fim > overlap_inicio:
-                    abs_inicio = periodo.inicio + (overlap_inicio - executado)
-                    abs_fim = periodo.inicio + (overlap_fim - executado)
-                    segmentos.append((recurso, abs_inicio, abs_fim))
-                executado += duracao_periodo
-        return segmentos
-
     def _desenhar_faixa_recurso(self, tarefa_id, inicio, fim, cor, pausado=False):
         """Faixa central sobre a barra da tarefa marcando a posse de um
         recurso — sólida enquanto em uso, hachurada quando pausada (esse
@@ -121,7 +81,7 @@ class ChartMixin:
         tempo_max = max(periodo.fim for tr in tarefas_resultado for periodo in tr.periodos)
 
         for tr in tarefas_resultado:
-            for inicio, fim in self._calcular_esperas(tr):
+            for inicio, fim in tr.esperas:
                 self.ax.barh(
                     tr.tarefa.id, fim - inicio, left=inicio,
                     fill=False, edgecolor=CHART_ESPERA, linewidth=1.2, height=ALTURA_BARRA,
@@ -149,7 +109,7 @@ class ChartMixin:
                         [periodo.fim, periodo.fim], [tr.tarefa.id - 0.32, tr.tarefa.id + 0.32],
                         linestyle="--", color=theme.TEXT, linewidth=1.2,
                     )
-            for recurso, inicio, fim in self._recursos_em_tempo_absoluto(tr):
+            for recurso, inicio, fim in tr.recursos_em_uso:
                 cor_recurso = (cores_recursos or {}).get(recurso.id, theme.TEXT)
                 self._desenhar_faixa_recurso(tr.tarefa.id, inicio, fim, cor_recurso)
             metricas = resultado.metricas_por_tarefa[tr.tarefa.id]

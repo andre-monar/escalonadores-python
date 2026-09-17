@@ -1,13 +1,15 @@
 from dataclasses import dataclass, field
 
 from models.periodo import Periodo
-from models.tarefa import Tarefa
+from models.tarefa import Recurso, Tarefa
 
 
 @dataclass
 class TarefaResultado:
     tarefa: Tarefa
     periodos: list[Periodo] = field(default_factory=list)
+    esperas: list[tuple[float, float]] = field(default_factory=list)
+    recursos_em_uso: list[tuple[Recurso, float, float]] = field(default_factory=list)
 
 
 @dataclass
