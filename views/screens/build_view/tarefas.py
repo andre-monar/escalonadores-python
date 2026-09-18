@@ -150,9 +150,11 @@ class TarefasMixin:
     def _remove_task_row(self, entry_data):
         if len(self.task_rows) <= 1:
             return
+        indice_removido = self.task_rows.index(entry_data) + 1
         entry_data["frame"].destroy()
         self.task_rows.remove(entry_data)
         self._renumber_rows()
+        self._ajustar_vinculos_apos_remover_tarefas([indice_removido])
 
     def _renumber_rows(self):
         for index, row in enumerate(self.task_rows, start=1):
@@ -171,10 +173,12 @@ class TarefasMixin:
         que sobrem pelo menos 2 linhas visíveis (só de exibição — as que forem
         adicionadas aqui têm duração 0 e não são enviadas pro algoritmo)."""
         invalidas = [row for row in self.task_rows if row["entries"][1].get_value() <= 0]
+        indices_removidos = [self.task_rows.index(row) + 1 for row in invalidas]
         for row in invalidas:
             row["frame"].destroy()
             self.task_rows.remove(row)
         self._renumber_rows()
+        self._ajustar_vinculos_apos_remover_tarefas(indices_removidos)
 
         while len(self.task_rows) < 2:
             self._add_task_row()

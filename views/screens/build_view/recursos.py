@@ -116,6 +116,29 @@ class RecursosMixin:
         for index, row in enumerate(self.resource_rows, start=1):
             row["id_label"].config(text=str(index))
 
+    def _ajustar_vinculos_apos_remover_tarefas(self, indices_removidos):
+        """Vínculos guardam a posição da tarefa (1-based) — remover uma ou
+        mais linhas desloca os índices das que sobraram, então os vínculos
+        precisam ser realinhados junto: quem apontava pra uma tarefa
+        removida perde o vínculo (volta a "Selecionar"), quem apontava pra
+        uma tarefa depois dela desce um índice pra cada remoção antes dela."""
+        if not indices_removidos:
+            return
+        removidos = sorted(indices_removidos)
+        for recurso in self.resource_rows:
+            for vinculo in recurso["vinculos"]:
+                indice = vinculo["tarefa_index"]
+                if indice is None:
+                    continue
+                if indice in removidos:
+                    vinculo["tarefa_index"] = None
+                    vinculo["t_inicial_recurso"] = 0
+                    vinculo["t_final_recurso"] = 0
+                    continue
+                deslocamento = sum(1 for r in removidos if r < indice)
+                if deslocamento:
+                    vinculo["tarefa_index"] = indice - deslocamento
+
     def _cores_dos_recursos(self) -> dict:
         """Cor configurada de cada recurso, por posição (mesma convenção de
         id usada em Recurso.id) — usado pelo gráfico pra colorir a faixa de

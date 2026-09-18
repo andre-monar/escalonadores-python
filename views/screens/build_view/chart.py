@@ -92,15 +92,14 @@ class ChartMixin:
 
     def _desenhar_faixa_recurso(self, tarefa_id, inicio, fim, cor, pausado=False):
         """Faixa central sobre a barra da tarefa marcando a posse de um
-        recurso — sólida enquanto a tarefa está de fato em EXECUCAO,
-        hachurada (vazada) nos trechos em que ela já cruzou o próprio
-        limiar do recurso mas está parada (espera, troca de contexto ou
-        bloqueio) — desenhada depois das barras de bloqueio, por isso
-        sobrepõe a hachura delas."""
+        recurso — sólida enquanto a tarefa está de fato em EXECUCAO, vazada
+        (só o contorno) nos trechos em que ela já cruzou o próprio limiar do
+        recurso mas está parada (espera, troca de contexto ou bloqueio) —
+        sem preenchimento nem hachura pra não cobrir a barra por baixo."""
         if pausado:
             self.ax.barh(
                 tarefa_id, fim - inicio, left=inicio, height=ALTURA_RECURSO,
-                facecolor=theme.CARD_BG, hatch="////", edgecolor=cor, linewidth=1,
+                fill=False, edgecolor=cor, linewidth=1,
             )
         else:
             self.ax.barh(
