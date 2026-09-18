@@ -25,9 +25,9 @@ Além dos algoritmos básicos, o simulador trata recursos de uso exclusivo e rep
 
 ## Documentação
 
-- [Tutorial de execução](./docs/tutorial_execucao.md) 
-- [Tutorial de uso](./docs/tutorial_uso.md)
-- [Documentação técnica](./docs/documentacao_projeto.md) 
+- [Tutorial de execução](./docs/tutorial_execucao.pdf) 
+- [Tutorial de uso](./docs/tutorial_uso.pdf)
+- [Documentação técnica](./docs/documentacao_projeto.pdf) 
 
 ## Por onde começar
 
@@ -93,5 +93,3 @@ escalonadores-python/
 | Sortear um cenário único | `views/screens/build_view/tarefas.py` |
 | Rodar lote de cenários e comparar médias entre algoritmos | `views/components/batch_table.py` |
 | Salvar e recarregar um cenário | `views/cenario_io.py`, `views/screens/build_view/cenario.py` |
-
-### Confira o [Tutorial de execução](docs/tutorial_execucao.md)!
