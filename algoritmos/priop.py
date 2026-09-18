@@ -44,6 +44,15 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
                             break
         return fila
 
+    def _reencaminhar_tarefa_atual(fila, tarefa_atual, tarefas_pendentes):
+        if tarefa_atual is None or tarefa_atual not in tarefas_pendentes or tarefa_atual in fila:
+            return
+        for i, tarefa_na_fila in enumerate(fila):
+            if tarefa_atual.prioridade >= tarefa_na_fila.prioridade:
+                fila.insert(i, tarefa_atual)
+                return
+        fila.append(tarefa_atual)
+
     def _pegar_proxima_tarefa(tarefas_ordenadas, tempo_atual):
             proxima_tarefa = None
             for tarefa in tarefas_ordenadas:
@@ -149,6 +158,7 @@ def priop(tarefas: list[Tarefa], ctx_time: float, protocolo: str | None = None) 
 
     while ids_nao_finalizados:
         # definir tarefa
+        _reencaminhar_tarefa_atual(fila, tarefa_atual, tarefas_pendentes)
         fila = _encher_fila(tarefas_pendentes, tempo_atual, fila)
         if not fila:
             # se a fila estiver vazia, incrementa o tempo até a próxima tarefa chegar
