@@ -17,6 +17,8 @@ def construir_tabela_resumo(fig, resultado, n_trocas, ancora_y):
         ("1ª exec. média", f"{resultado.medias.t1a_exec:.2f} s"),
         ("Trocas de contexto", str(n_trocas)),
     ]
+    if resultado.parametros.eficiencia is not None:
+        linhas.append(("Eficiência", f"{resultado.parametros.eficiencia:.3f}"))
     altura = len(linhas) * ALTURA_LINHA
 
     tabela_ax = fig.add_axes((0.02, ancora_y - altura, 0.46, altura))
