@@ -100,7 +100,7 @@ class ChartMixin:
         if pausado:
             self.ax.barh(
                 tarefa_id, fim - inicio, left=inicio, height=ALTURA_RECURSO,
-                fill=False, hatch="////", edgecolor=cor, linewidth=1,
+                facecolor=theme.CARD_BG, hatch="////", edgecolor=cor, linewidth=1,
             )
         else:
             self.ax.barh(
