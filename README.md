@@ -8,7 +8,7 @@ Projeto prático da disciplina de **Sistemas Operacionais**, ministrada por **Vi
 |------|----|
 | André Mendes Garcia | 081230012 |
 | Felipe Lira Silva | 081230006 |
-| Pedro Henrique Simões Reys | 081230012 |
+| Pedro Henrique Simões Reys | 081230022 |
 | Vinicius Yamaguti Augusto | 081220040 |
 
 ## Descrição
