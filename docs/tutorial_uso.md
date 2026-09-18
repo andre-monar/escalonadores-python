@@ -5,6 +5,7 @@ Como operar o Simulador de Escalonamento em cada uma de suas funções. Este tut
 ## 1. Criar novo cenário
 
 Na tela inicial, clique em **Criar novo cenário**.
+
 ![alt text](./imagens/criar_novo_cenario.png)
 
 ## 2. Escolher o algoritmo
