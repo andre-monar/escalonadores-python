@@ -74,6 +74,10 @@ class ChartMixin:
         self.ax.title.set_color(theme.TEXT)
 
     def _draw_empty_chart(self):
+        if getattr(self, "_tabela_resumo_ax", None) is not None:
+            self._tabela_resumo_ax.remove()
+            self._tabela_resumo_ax = None
+
         self.ax.clear()
         self._style_axes()
         self.ax.set_xticks([])
